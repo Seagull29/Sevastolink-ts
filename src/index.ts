@@ -1,65 +1,84 @@
-import DiscordJs from "discord.js";
+import { Client, GatewayIntentBits, Collection, SlashCommandBuilder } from "discord.js";
 import dotenv from "dotenv";
+
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
-const client = new DiscordJs.Client({
-    intents: [DiscordJs.GatewayIntentBits.Guilds]
+
+interface ClientBot extends Client {
+    commands?: Collection<string, any>
+}
+
+const client : ClientBot  = new Client({
+    intents: [GatewayIntentBits.Guilds]
 });
 
-client.on("ready", () => {
-    console.log(`The bot ${client.user?.tag} is ready`);
+client.commands = new Collection();
 
-    const guildId : string = "433837162530865154";
-    const guild = client.guilds.cache.get(guildId);
-    
-    let commands;
-    if (guild) {
-        commands = guild.commands;
-    } else {
-        commands = client.application?.commands;
+const commandsPath = path.join(__dirname, "commands");
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
+
+
+const readCommands = async () => {
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = await import(filePath);
+        client.commands!.set(command.default.data.name, command);
     }
+}
+readCommands();
 
-    commands?.create({
-        name: "ping",
-        description: "replies with pong"
-    });
 
-    commands?.create({
-        name: "add",
-        description: "Adds two numbers",
-        options: [
-            {
-                name: "num1",
-                description: "The first number",
-                required: true,
-                type: DiscordJs.Constants.NonSystemMessageTypes.MessageType.Reply,
-            }
-        ]
-    })
 
+
+
+
+
+
+
+
+
+client.once("ready", () => {
+    console.log("Ready");
 });
 
 
-client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isCommand()) {
+client.on("interactionCreate", async interaction => {
+    /* console.log(interaction); */
+    if (!interaction.isChatInputCommand()) {
         return;
     }
 
-    const { commandName, options } = interaction;
-    if (commandName === "ping") {
-        interaction.reply({
-            content: "pong",
-        });
-    }
-} )
+    const command = client.commands?.get(interaction.commandName);
 
-client.on("messageCreate", (message) => {
-    if (message.content === "ping") {
-        message.reply({
-            content: "pong"
+    if (!command) {
+        return;
+    }
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(error);
+        await interaction.reply({
+            content: "There was a problem while executing this command",
+            ephemeral: true
         });
     }
+
+    /* const { commandName } = interaction;
+
+    if (commandName === "ping") {
+        await interaction.reply("ping");
+    } else if (commandName === "server") {
+        await interaction.reply(`server name: ${interaction.guild?.name}\n${interaction.guild?.memberCount}\n${interaction.guild?.createdAt}`);
+    } else if (commandName === "user") {
+        await interaction.reply(`user info: ${interaction.user.tag}\n${interaction.user.id}`);
+    } */
 });
+
+
+
 
 client.login(process.env.CLIENT_TOKEN);
