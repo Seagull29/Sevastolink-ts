@@ -23,6 +23,10 @@
         "removeComments": true,
         //"allowSyntheticDefaultImports": false,
         "esModuleInterop": true,
+        "paths": {
+            "@commands/*": ["commands/*"],
+            "@events/*": ["events/*"], 
+        }
 
     },
     "include": [

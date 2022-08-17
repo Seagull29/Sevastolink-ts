@@ -7,7 +7,7 @@ import path from "path";
 dotenv.config();
 
 
-interface ClientBot extends Client {
+export interface ClientBot extends Client {
     commands?: Collection<string, any>
 }
 
@@ -20,65 +20,33 @@ client.commands = new Collection();
 const commandsPath = path.join(__dirname, "commands");
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
 
+const eventsPath = path.join(__dirname, "events");
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
+
 
 const readCommands = async () => {
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         const command = await import(filePath);
-        client.commands!.set(command.default.data.name, command);
+        const { default : defaultImport } = command;
+        client.commands!.set(defaultImport.data.name, defaultImport);
+    }
+}
+
+const readEvents = async () => {
+    for (const file of eventFiles) {
+        const filePath = path.join(eventsPath, file);
+        const event = await import(filePath);
+        const { default : defaultImportEvent } = event;
+        if (event.once) {
+            client.once(defaultImportEvent.name, (...args) => defaultImportEvent.execute(...args));
+        } else {
+            client.on(defaultImportEvent.name, (...args) => defaultImportEvent.execute(...args));
+        }
     }
 }
 readCommands();
-
-
-
-
-
-
-
-
-
-
-
-client.once("ready", () => {
-    console.log("Ready");
-});
-
-
-client.on("interactionCreate", async interaction => {
-    /* console.log(interaction); */
-    if (!interaction.isChatInputCommand()) {
-        return;
-    }
-
-    const command = client.commands?.get(interaction.commandName);
-
-    if (!command) {
-        return;
-    }
-
-    try {
-        await command.execute(interaction);
-    } catch (error) {
-        console.error(error);
-        await interaction.reply({
-            content: "There was a problem while executing this command",
-            ephemeral: true
-        });
-    }
-
-    /* const { commandName } = interaction;
-
-    if (commandName === "ping") {
-        await interaction.reply("ping");
-    } else if (commandName === "server") {
-        await interaction.reply(`server name: ${interaction.guild?.name}\n${interaction.guild?.memberCount}\n${interaction.guild?.createdAt}`);
-    } else if (commandName === "user") {
-        await interaction.reply(`user info: ${interaction.user.tag}\n${interaction.user.id}`);
-    } */
-});
-
-
+readEvents();
 
 
 client.login(process.env.CLIENT_TOKEN);
