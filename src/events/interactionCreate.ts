@@ -8,6 +8,10 @@ export default {
         if (!interaction.isChatInputCommand()) {
             return;
         }
+
+        if (!interaction.isButton()) {
+            return;
+        }
     
         const command = client.commands?.get(interaction.commandName);
     
