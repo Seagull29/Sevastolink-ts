@@ -11,6 +11,6 @@ export default {
 
         await interaction.reply("gifs");
         await wait(2000);
-        await interaction.editReply("Gif updated");
+        await interaction.editReply("Gif updated");        
     }
 }

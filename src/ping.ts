@@ -11,7 +11,7 @@ export default {
         );
 
         const rowMenu = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-            new SelectMenuBuilder().setCustomId("select").setPlaceholder("Nothing selected").addOptions(
+            new SelectMenuBuilder().setCustomId("select").setPlaceholder("Nothing selected").setMinValues(2).setMaxValues(3).addOptions(
                 {
                     label: "Select me",
                     description: "This is a description",
@@ -21,6 +21,11 @@ export default {
                     label: "Select me too",
                     description: "This is a description",
                     value: "second"
+                },
+                {
+                    label: "Select me too",
+                    description: "This is a description",
+                    value: "third"
                 }
             )
         );

@@ -1,12 +1,57 @@
-import { Client, GatewayIntentBits, Collection, SlashCommandBuilder } from "discord.js";
+import "module-alias/register";
+import { readFiles } from "@utils/helpers/readFiles";
+import { Client, GatewayIntentBits, Collection, ClientOptions } from "discord.js";
 import dotenv from "dotenv";
-
-import fs from "fs";
 import path from "path";
 
 dotenv.config();
 
+class Bot extends Client {
 
+    #commands : Collection<string, any> = new Collection();
+
+    constructor(clientOptions : ClientOptions) {
+        super(clientOptions);
+    }
+
+    #loadCommands = async () : Promise<void> => {
+        const commandFiles : string[] = readFiles(path.join(__dirname, "commands"));
+        for (const commandFile of commandFiles) {
+            const commandClass = (await import(commandFile)).default;
+            const command = new commandClass();
+            this.#commands.set(command.slashCommand.name, command);
+        }
+    }
+
+    #loadEvents = async () : Promise<void> => {
+        const eventFiles : string[] = readFiles(path.join(__dirname, "events"));
+        for (const eventFile of eventFiles) {
+            const eventClass = (await import(eventFile)).default;
+            const event = new eventClass();
+            event.once ? this.once(event.name, (...args) => event.execute(...args)) : this.on(event.name, (...args) => event.execute(...args));
+        }
+    }
+
+    setup = () : void => {
+        this.#loadCommands();
+        this.#loadEvents();
+        this.login(process.env.CLIENT_TOKEN);
+    }
+
+}
+
+const main = () : void => {
+    const bot : Bot = new Bot({
+        intents: [GatewayIntentBits.Guilds]
+    });
+    bot.setup();
+}
+
+main();
+
+
+
+/* 
 export interface ClientBot extends Client {
     commands?: Collection<string, any>
 }
@@ -46,7 +91,5 @@ const readEvents = async () => {
     }
 }
 readCommands();
-readEvents();
+readEvents(); */
 
-
-client.login(process.env.CLIENT_TOKEN);

@@ -23,9 +23,11 @@
         "removeComments": true,
         //"allowSyntheticDefaultImports": false,
         "esModuleInterop": true,
+        "experimentalDecorators": true,
         "paths": {
             "@commands/*": ["commands/*"],
             "@events/*": ["events/*"], 
+            "@utils/*": ["utils/*"]
         }
 
     },
