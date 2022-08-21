@@ -1,13 +1,20 @@
-import { ActionRowBuilder, ButtonStyle, ButtonBuilder, ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, MessageComponentInteraction, SelectMenuBuilder } from "discord.js";
+import { Command } from "@utils/models/command";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SelectMenuBuilder, SlashCommandBuilder } from "discord.js";
 import { setTimeout as wait } from "timers/promises";
-export default {
-    data: new SlashCommandBuilder().setName("ping").setDescription("reply with pong"),
-    async execute(interaction : ChatInputCommandInteraction) {
-        /* await interaction.deleteReply(); */
-        /* const message = await interaction.fetchReply(); */
+
+export default class PingCommand extends Command {
+
+    constructor() {
+        super(
+            new SlashCommandBuilder().
+                setName("ping").
+                setDescription("reply with pong") 
+        )
+    }
+
+    override execute = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder().setCustomId("primary").setLabel("Primary").setStyle(ButtonStyle.Success)
-            
+            new ButtonBuilder().setCustomId("primary").setLabel("Primeray").setStyle(ButtonStyle.Success)
         );
 
         const rowMenu = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
@@ -26,10 +33,9 @@ export default {
                     label: "Select me too",
                     description: "This is a description",
                     value: "third"
-                }
+                },
             )
         );
-
 
         const embed = new EmbedBuilder().setColor(0x0099FF).setTitle("Some title").setURL("https://discord.js.org").setDescription("Some description");
         await interaction.reply({
@@ -38,22 +44,22 @@ export default {
             components: [row, rowMenu]
         });
 
-        
         const filter = (i : MessageComponentInteraction) => i.customId === "primary";
         const collector = interaction.channel?.createMessageComponentCollector({
-            filter, 
+            filter,
             time: 4000
         });
+
 
         collector?.on("collect", async (i : MessageComponentInteraction) => {
             await i.deferUpdate();
             await wait(4000);
-            await i.editReply({ content: "A button was clicked", components: []});
-            /* await i.update({ content: "A button was clicked", components: []}); */
+            await i.editReply({
+                content: "A button was clicked",
+                components: []
+            });
         });
 
-
         collector?.on("end", collected => console.log(`Collected ${collected.size} items`));
-
     }
 }

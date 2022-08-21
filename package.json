@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./dist/index.js",
     "dev": "concurrently \"tsc -W\" \"nodemon ./dist/index.js\"",
-    "commands": "node ./dist/deploy-commands.js"
+    "commands": "node ./dist/test.js"
   },
   "dependencies": {
     "@discordjs/rest": "^1.0.1",
@@ -21,6 +21,7 @@
     "nodemon": "^2.0.19"
   },
   "_moduleAliases": {
-    "@utils": "dist/utils"
+    "@utils": "dist/utils",
+    "@services": "dist/services"
   }
 }

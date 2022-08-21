@@ -1,95 +1,73 @@
 import "module-alias/register";
 import { readFiles } from "@utils/helpers/readFiles";
-import { Client, GatewayIntentBits, Collection, ClientOptions } from "discord.js";
+import { GatewayIntentBits, ClientOptions, RESTPostAPIApplicationCommandsJSONBody, REST, Routes } from "discord.js";
+import { Bot } from "@utils/models/botClient";
 import dotenv from "dotenv";
 import path from "path";
 
 dotenv.config();
 
-class Bot extends Client {
+class BotSetup {
 
-    #commands : Collection<string, any> = new Collection();
-
-    constructor(clientOptions : ClientOptions) {
-        super(clientOptions);
+    #bot! : Bot;
+    readonly #CLIENT_TOKEN! : string;
+    readonly #CLIENT_ID! : string;
+    
+    constructor(clientOptions : ClientOptions, [clientToken, clientId] : string[]) {
+        this.#bot = new Bot(clientOptions);
+        this.#CLIENT_TOKEN = clientToken;
+        this.#CLIENT_ID = clientId;
     }
-
+    
     #loadCommands = async () : Promise<void> => {
         const commandFiles : string[] = readFiles(path.join(__dirname, "commands"));
         for (const commandFile of commandFiles) {
             const commandClass = (await import(commandFile)).default;
             const command = new commandClass();
-            this.#commands.set(command.slashCommand.name, command);
+            this.#bot.commands?.set(command.slashCommand.name, command);
         }
     }
-
+    
     #loadEvents = async () : Promise<void> => {
         const eventFiles : string[] = readFiles(path.join(__dirname, "events"));
         for (const eventFile of eventFiles) {
             const eventClass = (await import(eventFile)).default;
             const event = new eventClass();
-            event.once ? this.once(event.name, (...args) => event.execute(...args)) : this.on(event.name, (...args) => event.execute(...args));
+            event.once ? this.#bot.once(event.name, (...args : any) => event.execute(...args)) : this.#bot.on(event.name, (...args : any) => event.execute(...args));
         }
     }
 
-    setup = () : void => {
-        this.#loadCommands();
-        this.#loadEvents();
-        this.login(process.env.CLIENT_TOKEN);
-    }
+    registerCommands = async () : Promise<void> => {
+        const commands : RESTPostAPIApplicationCommandsJSONBody[] = [];
+        const commandFiles : string[] = readFiles(path.join(__dirname, "commands"));
+        for (const commandFile of commandFiles) {
+            const commandClass = (await import(commandFile)).default;
+            const command = new commandClass();
+            commands.push(command.slashCommand.toJSON());
+        }
+        const rest : REST = new REST({ version: "10" }).setToken(this.#CLIENT_TOKEN);
 
+        rest.put(Routes.applicationCommands(this.#CLIENT_ID), { body: commands }).then(() => console.log("Commands were successfully registered")).catch(console.error);
+    }
+    
+    setup = () : void => {
+        try {
+            this.#loadCommands();
+            this.#loadEvents();
+            this.#bot.login(this.#CLIENT_TOKEN);    
+        } catch (error) {
+            console.log("There was an error while starting the bot");
+        }
+    }
+    
 }
 
 const main = () : void => {
-    const bot : Bot = new Bot({
+    const bot : BotSetup = new BotSetup({
         intents: [GatewayIntentBits.Guilds]
-    });
+    }, [process.env.CLIENT_TOKEN!, process.env.CLIENT_ID!]);
+    /* bot.registerCommands(); */
     bot.setup();
 }
 
 main();
-
-
-
-/* 
-export interface ClientBot extends Client {
-    commands?: Collection<string, any>
-}
-
-const client : ClientBot  = new Client({
-    intents: [GatewayIntentBits.Guilds]
-});
-
-client.commands = new Collection();
-
-const commandsPath = path.join(__dirname, "commands");
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
-
-const eventsPath = path.join(__dirname, "events");
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
-
-
-const readCommands = async () => {
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const command = await import(filePath);
-        const { default : defaultImport } = command;
-        client.commands!.set(defaultImport.data.name, defaultImport);
-    }
-}
-
-const readEvents = async () => {
-    for (const file of eventFiles) {
-        const filePath = path.join(eventsPath, file);
-        const event = await import(filePath);
-        const { default : defaultImportEvent } = event;
-        if (event.once) {
-            client.once(defaultImportEvent.name, (...args) => defaultImportEvent.execute(...args));
-        } else {
-            client.on(defaultImportEvent.name, (...args) => defaultImportEvent.execute(...args));
-        }
-    }
-}
-readCommands();
-readEvents(); */
-

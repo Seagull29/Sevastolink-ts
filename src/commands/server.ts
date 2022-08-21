@@ -17,7 +17,6 @@ export default class ServerCommand {
         return this.#slashCommand;
     }
 
-
 }
 
 

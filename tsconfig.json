@@ -27,7 +27,8 @@
         "paths": {
             "@commands/*": ["commands/*"],
             "@events/*": ["events/*"], 
-            "@utils/*": ["utils/*"]
+            "@utils/*": ["utils/*"],
+            "@services/*": ["services/*"]
         }
 
     },
