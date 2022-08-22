@@ -47,17 +47,20 @@ export default class PingCommand extends Command {
         const filter = (i : MessageComponentInteraction) => i.customId === "primary";
         const collector = interaction.channel?.createMessageComponentCollector({
             filter,
-            time: 4000
+            time: 10000,
+            max: 10 
         });
 
 
         collector?.on("collect", async (i : MessageComponentInteraction) => {
-            await i.deferUpdate();
+            /* await i.deferUpdate();
             await wait(4000);
             await i.editReply({
-                content: "A button was clicked",
-                components: []
-            });
+                content: "A button was clicked"
+            }); */
+            console.log(i);
+            await i.update("otr");
+            console.log("otra vez");
         });
 
         collector?.on("end", collected => console.log(`Collected ${collected.size} items`));

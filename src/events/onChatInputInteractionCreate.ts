@@ -1,6 +1,6 @@
 import { Bot } from "@utils/models/botClient";
 import { OnInteractionCreate } from "@utils/models/onInteractionCreate";
-import { ChatInputCommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction, Message } from "discord.js";
 
 export default class OnChatInputInteractionCreate extends OnInteractionCreate {
     
@@ -8,7 +8,7 @@ export default class OnChatInputInteractionCreate extends OnInteractionCreate {
         super("interactionCreate", false);
     }
 
-    override execute = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
+    override execute = async (interaction : ChatInputCommandInteraction, message : Message) : Promise<void> => {
         const client : Bot = interaction.client as Bot;
         if (!interaction.isChatInputCommand()) {
             return;

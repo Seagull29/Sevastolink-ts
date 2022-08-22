@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, SlashCommandSubcommandBuilder } from "discord.js";
+import { Message, SlashCommandBuilder, SlashCommandSubcommandBuilder } from "discord.js";
 
 export interface ICommand {
     slashCommand: SlashCommandBuilder | SlashCommandSubcommandBuilder,

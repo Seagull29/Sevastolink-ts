@@ -2,7 +2,7 @@ import { SpotifyApi } from "@services/spotify/api/spotifyApi";
 import { SpotifyTypes } from "@services/spotify/api/spotifyTypes";
 import { Spotify } from "@services/spotify/models/spotify";
 import { Command } from "@utils/models/command";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, resolveColor, SlashCommandBuilder, SlashCommandSubcommandBuilder, User } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, italic, Message, MessageComponentInteraction, resolveColor, SlashCommandBuilder, SlashCommandSubcommandBuilder, User } from "discord.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -58,12 +58,13 @@ export default class SpotifyCommand extends Command {
         return row;
     }
 
-    #makeArtistEmbed = (artist : Spotify, user : User) : EmbedBuilder => {
+    #makeArtistEmbed = (artists : Spotify[], user : User, index : number) : EmbedBuilder => {
 
         const now : Date = new Date();
         const embed : EmbedBuilder = new EmbedBuilder();
-        
-        embed.setTitle(artist.name).setURL(artist.externalUrl).setColor(user.hexAccentColor!);
+        const artist = artists[index];
+
+        embed.setTitle(artist.name).setURL(artist.externalUrl).setColor(user.accentColor!);
         embed.setAuthor({
             name: "Spotify",
             iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
@@ -71,7 +72,7 @@ export default class SpotifyCommand extends Command {
         });
         embed.setThumbnail(artist.standardImage);
         embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}`,
+            text: `${italic(`Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${artists.length}`)}`,
             iconURL: user.avatarURL() || ""
         });
     
@@ -85,6 +86,8 @@ export default class SpotifyCommand extends Command {
     }
 
     #processArtists = async (interaction : ChatInputCommandInteraction, query : string) : Promise<void> => {
+        await interaction.deferReply();
+
         const data = await this.#spotifyApi.search(query, SpotifyTypes.ARTIST);
         const { artists : { items } } = data;
         const artists : Spotify[] = [];
@@ -96,38 +99,40 @@ export default class SpotifyCommand extends Command {
         const selected : Spotify = artists[index];
         const user : User = await interaction.user.fetch();
 
-        await interaction.deferReply();
         await interaction.editReply({
-            embeds: [this.#makeArtistEmbed(selected, user)],
+            embeds: [this.#makeArtistEmbed(artists, user, index)],
             components: [this.#makeButtons()]
         });
-        await interaction.followUp(selected.externalUrl);
 
+        let embedUrlMessage : Message = await (await interaction.followUp(selected.externalUrl)).fetch();
 
-        const previousFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === "previousElement";
         const nextFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === "nextElement";
-        
-        const previousCollector = interaction.channel?.createMessageComponentCollector({
-            filter: previousFilter,
-            time: 5000
-        });
 
         const nextCollector = interaction.channel?.createMessageComponentCollector({
             filter: nextFilter,
-            time: 5000
+            time: 1000 * 20,
+            max: 5
         });
 
 
         nextCollector?.on("collect", async (messageInteraction : MessageComponentInteraction) => {
-            index += 1;
-            await messageInteraction.deferUpdate();
-            await messageInteraction.editReply({
-                /* components: [this.#makeButtons()], */
-                embeds: [this.#makeArtistEmbed(artists[index], user)]
+            ++index;
+            if (index === artists.length) {
+                index = 0;
+            }
+            const currentArtist : Spotify = artists[index];
+            embedUrlMessage.delete();
+            
+            await messageInteraction.update({
+                embeds: [this.#makeArtistEmbed(artists, user, index)]
             });
+            embedUrlMessage = await messageInteraction.followUp(currentArtist.externalUrl);
         });
 
-        nextCollector?.on("end", collected => console.log(`Collected ${collected.size} items`));
+        nextCollector?.on("end", collected => {
+            console.log(`Collected ${collected.size} items`);
+        });
+
 
         
     }

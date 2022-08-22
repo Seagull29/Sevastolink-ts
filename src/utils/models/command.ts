@@ -1,5 +1,5 @@
 import { ICommand } from "@utils/interfaces/commandInterface";
-import { SlashCommandBuilder, SlashCommandSubcommandBuilder } from "discord.js";
+import { Message, SlashCommandBuilder, SlashCommandSubcommandBuilder } from "discord.js";
 
 export abstract class Command implements ICommand {
 
