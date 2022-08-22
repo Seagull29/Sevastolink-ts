@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-import { SpotifyAuthentication } from "@services/spotify/spotifyAuthentication";
-import { SpotifyTypes } from "@services/spotify/spotifyTypes";
+import { SpotifyAuthentication } from "@services/spotify/api/spotifyAuthentication";
+import { SpotifyTypes } from "@services/spotify/api/spotifyTypes";
 
 export class SpotifyApi extends SpotifyAuthentication {
 
