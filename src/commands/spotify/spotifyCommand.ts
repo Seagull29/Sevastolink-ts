@@ -1,7 +1,8 @@
 import { SpotifyApi } from "@services/spotify/api/spotifyApi";
 import { SpotifyTypes } from "@services/spotify/api/spotifyTypes";
+import { Spotify } from "@services/spotify/models/spotify";
 import { Command } from "@utils/models/command";
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder, SlashCommandSubcommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, resolveColor, SlashCommandBuilder, SlashCommandSubcommandBuilder, User } from "discord.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -49,13 +50,101 @@ export default class SpotifyCommand extends Command {
         return subcommand;
     }
 
-    /* #makeEmbed = () : EmbedBuilder => {
+    #makeButtons = () : ActionRowBuilder<ButtonBuilder> => {
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setCustomId("previousElement").setStyle(ButtonStyle.Success).setEmoji("⏮️").setLabel("Previous"),
+            new ButtonBuilder().setCustomId("nextElement").setStyle(ButtonStyle.Success).setLabel("Next").setEmoji("⏭️")
+        );
+        return row;
+    }
 
-    } */
+    #makeArtistEmbed = (artist : Spotify, user : User) : EmbedBuilder => {
 
-    #makeRequest = async (query : string, type : SpotifyTypes) => {
-        const data = await this.#spotifyApi.search(query, type);
-        const 
+        const now : Date = new Date();
+        const embed : EmbedBuilder = new EmbedBuilder();
+        
+        embed.setTitle(artist.name).setURL(artist.externalUrl).setColor(user.hexAccentColor!);
+        embed.setAuthor({
+            name: "Spotify",
+            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
+            url: "https://open.spotify.com/"
+        });
+        embed.setThumbnail(artist.standardImage);
+        embed.setFooter({
+            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}`,
+            iconURL: user.avatarURL() || ""
+        });
+    
+        embed.addFields(
+            { name: "Genres", value: artist.genres.join(", ") },
+            { name: "Type", value: artist.type, inline: true  },
+            { name: "Followers", value: artist.followers.toString(), inline: true },
+            { name: "Popularity", value: artist.popularity.toString(), inline: true }
+        );
+        return embed;
+    }
+
+    #processArtists = async (interaction : ChatInputCommandInteraction, query : string) : Promise<void> => {
+        const data = await this.#spotifyApi.search(query, SpotifyTypes.ARTIST);
+        const { artists : { items } } = data;
+        const artists : Spotify[] = [];
+        for (const artist of items) {
+            artists.push(new Spotify(artist));
+        }
+
+        let index : number = 0;
+        const selected : Spotify = artists[index];
+        const user : User = await interaction.user.fetch();
+
+        await interaction.deferReply();
+        await interaction.editReply({
+            embeds: [this.#makeArtistEmbed(selected, user)],
+            components: [this.#makeButtons()]
+        });
+        await interaction.followUp(selected.externalUrl);
+
+
+        const previousFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === "previousElement";
+        const nextFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === "nextElement";
+        
+        const previousCollector = interaction.channel?.createMessageComponentCollector({
+            filter: previousFilter,
+            time: 5000
+        });
+
+        const nextCollector = interaction.channel?.createMessageComponentCollector({
+            filter: nextFilter,
+            time: 5000
+        });
+
+
+        nextCollector?.on("collect", async (messageInteraction : MessageComponentInteraction) => {
+            index += 1;
+            await messageInteraction.deferUpdate();
+            await messageInteraction.editReply({
+                /* components: [this.#makeButtons()], */
+                embeds: [this.#makeArtistEmbed(artists[index], user)]
+            });
+        });
+
+        nextCollector?.on("end", collected => console.log(`Collected ${collected.size} items`));
+
+        
+    }
+    #processTracks = async (interaction : ChatInputCommandInteraction, query : string) => {
+        const data = await this.#spotifyApi.search(query, SpotifyTypes.TRACK);
+        const { tracks : { items } } = data;
+        
+    }
+    #processAlbums = async (interaction : ChatInputCommandInteraction, query : string) => {
+        const data = await this.#spotifyApi.search(query, SpotifyTypes.ALBUM);
+        const { albums : { items } } = data;
+        
+    }
+    #processPlaylists = async (interaction : ChatInputCommandInteraction, query : string) => {
+        const data = await this.#spotifyApi.search(query, SpotifyTypes.PLAYLIST);
+        const { playlists : { items } } = data;
+
     }
 
     override execute = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
@@ -66,24 +155,20 @@ export default class SpotifyCommand extends Command {
         if (group === "search") {
             switch (subcommand) {
                 case "artists":
-                    this.#makeRequest(query, SpotifyTypes.ARTIST);
+                    this.#processArtists(interaction, query);
                     break;
                 case "albums":
-                    this.#makeRequest(query, SpotifyTypes.ALBUM);
+                    this.#processAlbums(interaction, query);
                     break;
                 case "tracks":
-                    this.#makeRequest(query, SpotifyTypes.TRACK);
+                    this.#processTracks(interaction, query);
                     break;
                 case "playlists":
-                    this.#makeRequest(query, SpotifyTypes.PLAYLIST);
+                    this.#processPlaylists(interaction, query);
                     break;
 
             }
         }
-
-
-        await interaction.deferReply();
-        await interaction.editReply(query);
     }
 
 
