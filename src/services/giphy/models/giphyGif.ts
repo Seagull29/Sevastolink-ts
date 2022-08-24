@@ -103,9 +103,9 @@ export class GiphyGif {
         return original.url;
     }
 
-    get user() : GiphyUser {
+    get user() : GiphyUser | undefined {
         const { user } = this.#data;
-        return new GiphyUser(user);
+        return user ? new GiphyUser(user) : undefined;
     }
 
     get analyticsResponsePayload() : string {
