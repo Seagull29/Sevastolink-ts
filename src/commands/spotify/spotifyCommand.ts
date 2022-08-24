@@ -2,15 +2,15 @@ import { SpotifyApi } from "@services/spotify/api/spotifyApi";
 import { SpotifyTypes } from "@services/spotify/api/spotifyTypes";
 import { SpotifyArtist } from "@services/spotify/models/spotifyArtist";
 import { Command } from "@utils/models/command";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, Embed, EmbedBuilder, Message, MessageComponentInteraction, SlashCommandBuilder, SlashCommandSubcommandBuilder, User } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, Message, MessageComponentInteraction, SlashCommandBuilder, SlashCommandSubcommandBuilder, User } from "discord.js";
 import { setTimeout as wait } from "timers/promises";
 import { nanoid } from "nanoid";
 import { SpotifyAlbum } from "@services/spotify/models/spotifyAlbum";
 import { SpotifyTrack } from "@services/spotify/models/spotifyTrack";
 import { convertMstoTime } from "@utils/helpers/convertMs";
 import { SpotifyPlaylist } from "@services/spotify/models/spotifyPlaylist";
-import dotenv from "dotenv";
 import { SpotifyObject } from "@services/spotify/models/spotifyObject";
+import dotenv from "dotenv";
 dotenv.config();
 
 export default class SpotifyCommand extends Command {
@@ -74,11 +74,9 @@ export default class SpotifyCommand extends Command {
     }
 
     #makeArtistEmbed = (artists : SpotifyArtist[], user : User, index : number) : EmbedBuilder => {
-
         const now : Date = new Date();
         const embed : EmbedBuilder = new EmbedBuilder();
         const artist : SpotifyArtist = artists[index];
-
         embed.setTitle(artist.name).setURL(artist.externalUrl).setColor(user.accentColor!);
         embed.setAuthor({
             name: "Spotify",
@@ -90,7 +88,6 @@ export default class SpotifyCommand extends Command {
             text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${artists.length}`,
             iconURL: user.avatarURL() || ""
         });
-    
         embed.addFields(
             { name: "Genres", value: artist.genres.join(", ") },
             { name: "Type", value: artist.type, inline: true  },
@@ -104,14 +101,12 @@ export default class SpotifyCommand extends Command {
         const now : Date = new Date();
         const embed : EmbedBuilder = new EmbedBuilder();
         const album : SpotifyAlbum = albums[index];
-
         const { artists } = album;
         const artistNames : string[] = [];
         for (const artist of artists) {
             artistNames.push(artist.name);
         }
         const allArtists : string = artistNames.join(", ");
-
         embed.setTitle(album.name).setURL(album.externalUrl).setColor(user.accentColor!);
         embed.setAuthor({
             name: "Spotify",
@@ -140,7 +135,6 @@ export default class SpotifyCommand extends Command {
         const { artists, album } = track;
         const artistTrackNames : string[] = [];
         const artistAlbumNames : string[] = [];
-
         for (const artist of artists) {
             artistTrackNames.push(artist.name);
         }
@@ -149,7 +143,6 @@ export default class SpotifyCommand extends Command {
         }
         const allTrackArtists : string = artistTrackNames.join(", ");
         const allAlbumArtists : string = artistAlbumNames.join(", ");
-
         embed.setTitle(track.name).setURL(track.externalUrl).setColor(user.accentColor!);
         embed.setAuthor({
             name: "Spotify",
@@ -182,7 +175,6 @@ export default class SpotifyCommand extends Command {
         const embed : EmbedBuilder = new EmbedBuilder();
         const playlist : SpotifyPlaylist = playlists[index];
         const { owner } = playlist;
-
         embed.setTitle(playlist.name).setURL(playlist.externalUrl).setColor(user.accentColor!);
         embed.setAuthor({
             name: "Spotify",
@@ -202,12 +194,14 @@ export default class SpotifyCommand extends Command {
             { name: "Tracks", value: playlist.tracks.toString(), inline: true },
             { name: "Type", value: playlist.type, inline: true }
         )
-
         return embed;
     }
 
-    #makeReply = async (interaction : ChatInputCommandInteraction, spotifyObjects : SpotifyObject[]) => {
-        await interaction.deferReply();
+    #makeReply = async (interaction : ChatInputCommandInteraction, spotifyObjects : SpotifyObject[]) : Promise<void> => {
+        if (!spotifyObjects.length) {
+            this.#replyToEmptyData(interaction);
+            return;
+        }
         const nextInteractionId : string = nanoid();
         const previousInteractionId : string = nanoid();
         let index : number = 0;
@@ -243,11 +237,9 @@ export default class SpotifyCommand extends Command {
             if (index === spotifyObjects.length) {
                 index = 0;
             }
-
             if (index === -1) {
                 index = spotifyObjects.length - 1;
             }
-
             const currentSpotifyObject : SpotifyObject = spotifyObjects[index];
             let newEmbed : EmbedBuilder = new EmbedBuilder();
             embedUrlMessage.delete();
@@ -265,218 +257,45 @@ export default class SpotifyCommand extends Command {
             });
             embedUrlMessage = await messageInteraction.followUp(currentSpotifyObject.externalUrl);
         });
-
         collector?.on("end", collected => {
             console.log(`Collected ${collected.size} items`);
         });
     }
 
     #processArtists = async (interaction : ChatInputCommandInteraction, query : string) : Promise<void> => {
+        await interaction.deferReply();
         const data = await this.#spotifyApi.search(query, SpotifyTypes.ARTIST);
         const { artists : { items } } = data;
         const artists : SpotifyArtist[] = [];
         for (const artist of items) {
             artists.push(new SpotifyArtist(artist));
         }
-
-        if (!artists.length) {
-            this.#replyToEmptyData(interaction);
-            return;
-        }
-
         this.#makeReply(interaction, artists);
-        
-        /* const nextInteractionId : string = nanoid();
-        const previousInteractionId : string = nanoid();
-
-        let index : number = 0;
-        const selected : SpotifyArtist = artists[index];
-        const user : User = await interaction.user.fetch();
-        
-        await interaction.editReply({
-            embeds: [this.#makeArtistEmbed(artists, user, index)],
-            components: [this.#makeButtons(previousInteractionId, nextInteractionId)]
-        });
-
-        let embedUrlMessage : Message = await (await interaction.followUp(selected.externalUrl)).fetch();
-
-        const navigationFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === previousInteractionId || messageInteraction.customId === nextInteractionId;
-
-        const nextCollector = interaction.channel?.createMessageComponentCollector({
-            filter: navigationFilter,
-            time: 1000 * 60 * 4,
-            max: 5
-        });
-
-        nextCollector?.on("collect", async (messageInteraction : MessageComponentInteraction) => {
-
-            if (messageInteraction.customId === nextInteractionId) {
-                ++index;
-            } else if (messageInteraction.customId === previousInteractionId) {
-                --index;
-            }
-
-            if (index === artists.length) {
-                index = 0;
-            }
-
-            if (index === -1) {
-                index = artists.length - 1;
-            }
-
-            const currentArtist : SpotifyArtist = artists[index];
-            embedUrlMessage.delete();
-
-            await messageInteraction.update({
-                embeds: [this.#makeArtistEmbed(artists, user, index)]
-            });
-            embedUrlMessage = await messageInteraction.followUp(currentArtist.externalUrl);
-        });
-
-        nextCollector?.on("end", collected => {
-            console.log(`Collected ${collected.size} items`);
-        });
-  */
     }
 
-    #processTracks = async (interaction : ChatInputCommandInteraction, query : string) => {
+    #processTracks = async (interaction : ChatInputCommandInteraction, query : string) : Promise<void> => {
         await interaction.deferReply();
         const data = await this.#spotifyApi.search(query, SpotifyTypes.TRACK);
         const { tracks : { items } } = data;
         const tracks : SpotifyTrack[] = [];
-        console.log(items[0]);
         for (const track of items) {
             tracks.push(new SpotifyTrack(track));
         }
-        
-        if (!tracks.length) {
-            this.#replyToEmptyData(interaction);
-            return;
-        }
-
-        const nextInteractionId : string = nanoid();
-        const previousInteractionId : string = nanoid();
-
-        let index : number = 0;
-        const selected : SpotifyTrack = tracks[index];
-        const user : User = await interaction.user.fetch();
-        
-        await interaction.editReply({
-            embeds: [this.#makeTrackEmbed(tracks, user, index)],
-            components: [this.#makeButtons(previousInteractionId, nextInteractionId)]
-        });
-
-        let embedUrlMessage : Message = await (await interaction.followUp(selected.externalUrl)).fetch();
-
-        const navigationFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === previousInteractionId || messageInteraction.customId === nextInteractionId;
-
-        const nextCollector = interaction.channel?.createMessageComponentCollector({
-            filter: navigationFilter,
-            time: 1000 * 60 * 4,
-            max: 5
-        });
-
-        nextCollector?.on("collect", async (messageInteraction : MessageComponentInteraction) => {
-
-            if (messageInteraction.customId === nextInteractionId) {
-                ++index;
-            } else if (messageInteraction.customId === previousInteractionId) {
-                --index;
-            }
-
-            if (index === tracks.length) {
-                index = 0;
-            }
-
-            if (index === -1) {
-                index = tracks.length - 1;
-            }
-
-            const currentTrack : SpotifyTrack = tracks[index];
-            embedUrlMessage.delete();
-
-            await messageInteraction.update({
-                embeds: [this.#makeTrackEmbed(tracks, user, index)]
-            });
-            embedUrlMessage = await messageInteraction.followUp(currentTrack.externalUrl);
-        });
-
-        nextCollector?.on("end", collected => {
-            console.log(`Collected ${collected.size} items`);
-        });
-
-        
+        this.#makeReply(interaction, tracks);
     }
 
-    #processAlbums = async (interaction : ChatInputCommandInteraction, query : string) => {
+    #processAlbums = async (interaction : ChatInputCommandInteraction, query : string) : Promise<void> => {
         await interaction.deferReply();
         const data = await this.#spotifyApi.search(query, SpotifyTypes.ALBUM);
         const { albums : { items } } = data;
-        console.log(items[0]);
         const albums : SpotifyAlbum[] = [];
         for (const album of items) {
             albums.push(new SpotifyAlbum(album));
         }
-
-        if (!albums.length) {
-            this.#replyToEmptyData(interaction);
-            return;
-        }
-
-        const nextInteractionId : string = nanoid();
-        const previousInteractionId : string = nanoid();
-
-        let index : number = 0;
-        const selected : SpotifyAlbum = albums[index];
-        const user : User = await interaction.user.fetch();
-
-        await interaction.editReply({
-            embeds: [this.#makeAlbumEmbed(albums, user, index)],
-            components: [this.#makeButtons(previousInteractionId, nextInteractionId)]
-        });
-
-        let embedUrlMessage : Message = await (await interaction.followUp(selected.externalUrl)).fetch();
-
-        const navigationFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === nextInteractionId || messageInteraction.customId === previousInteractionId;
-
-        const nextCollector = interaction.channel?.createMessageComponentCollector({
-            filter: navigationFilter,
-            time: 1000 * 60 * 2,
-            max: 5
-        });
-
-        nextCollector?.on("collect", async (messageInteraction : MessageComponentInteraction) => {
-
-            if (messageInteraction.customId === nextInteractionId) {
-                ++index;
-            } else if (messageInteraction.customId === previousInteractionId) {
-                --index;
-            }
-
-            if (index === albums.length) {
-                index = 0;
-            }
-
-            if (index === -1) {
-                index = albums.length - 1;
-            }
-
-            const currentAlbum : SpotifyAlbum = albums[index];
-            embedUrlMessage.delete();
-            
-            await messageInteraction.update({
-                embeds: [this.#makeAlbumEmbed(albums, user, index)]
-            });
-            embedUrlMessage = await messageInteraction.followUp(currentAlbum.externalUrl);
-        });
-
-        nextCollector?.on("end", collected => {
-            console.log(`Collected ${collected.size} items`);
-        });
-
+        this.#makeReply(interaction, albums);
     }
 
-    #processPlaylists = async (interaction : ChatInputCommandInteraction, query : string) => {
+    #processPlaylists = async (interaction : ChatInputCommandInteraction, query : string) : Promise<void> => {
         await interaction.deferReply();
         const data = await this.#spotifyApi.search(query, SpotifyTypes.PLAYLIST);
         const { playlists : { items } } = data;
@@ -484,70 +303,13 @@ export default class SpotifyCommand extends Command {
         for (const playlist of items) {
             playlists.push(new SpotifyPlaylist(playlist));
         }
-
-        if (!playlists.length) {
-            this.#replyToEmptyData(interaction);
-            return;
-        }
-
-        const nextInteractionId : string = nanoid();
-        const previousInteractionId : string = nanoid();
-
-        let index : number = 0;
-        const selected : SpotifyPlaylist = playlists[index];
-        const user : User = await interaction.user.fetch();
-
-        await interaction.editReply({
-            embeds: [this.#makePlaylistEmbed(playlists, user, index)],
-            components: [this.#makeButtons(previousInteractionId, nextInteractionId)]
-        });
-
-        let embedUrlMessage : Message = await (await interaction.followUp(selected.externalUrl)).fetch();
-
-        const navigationFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === nextInteractionId || messageInteraction.customId === previousInteractionId;
-
-        const nextCollector = interaction.channel?.createMessageComponentCollector({
-            filter: navigationFilter,
-            time: 1000 * 60 * 2,
-            max: 5
-        });
-
-        nextCollector?.on("collect", async (messageInteraction : MessageComponentInteraction) => {
-
-            if (messageInteraction.customId === nextInteractionId) {
-                ++index;
-            } else if (messageInteraction.customId === previousInteractionId) {
-                --index;
-            }
-
-            if (index === playlists.length) {
-                index = 0;
-            }
-
-            if (index === -1) {
-                index = playlists.length - 1;
-            }
-
-            const currentPlaylist : SpotifyPlaylist = playlists[index];
-            embedUrlMessage.delete();
-            
-            await messageInteraction.update({
-                embeds: [this.#makePlaylistEmbed(playlists, user, index)]
-            });
-            embedUrlMessage = await messageInteraction.followUp(currentPlaylist.externalUrl);
-        });
-
-        nextCollector?.on("end", collected => {
-            console.log(`Collected ${collected.size} items`);
-        });
-
+        this.#makeReply(interaction, playlists);
     }
     
     override execute = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         const query : string = interaction.options.getString("query")!;
         const { _group : group } : any = interaction.options;
         const { _subcommand : subcommand } : any = interaction.options;
-
         if (group === "search") {
             switch (subcommand) {
                 case "artists":
@@ -562,10 +324,7 @@ export default class SpotifyCommand extends Command {
                 case "playlists":
                     this.#processPlaylists(interaction, query);
                     break;
-
             }
         }
     }
-
-
 }

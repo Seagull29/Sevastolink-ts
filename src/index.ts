@@ -63,11 +63,11 @@ class BotSetup {
 }
 
 const main = () : void => {
-    const bot : BotSetup = new BotSetup({
+    const sevastolink : BotSetup = new BotSetup({
         intents: [GatewayIntentBits.Guilds]
     }, [process.env.CLIENT_TOKEN!, process.env.CLIENT_ID!]);
-    /* bot.registerCommands(); */
-    bot.setup();
+    /* sevastolink.registerCommands(); */
+    sevastolink.setup();
 }
 
 main();

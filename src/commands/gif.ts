@@ -7,7 +7,7 @@ export default abstract class GifCommand extends Command {
     constructor() {
         super(
             new SlashCommandBuilder().
-                setName("gif").
+                setName("category").
                 setDescription("The gif category").
                 addStringOption(option => option.setName("category").
                                                  setDescription("the gif category").
