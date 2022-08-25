@@ -80,4 +80,22 @@ export class GiphyApi {
         }
     }
 
+    categories = async () => {
+        try {
+            const params = { api_key: this.#giphyKey };
+            const giphyResponse : AxiosResponse = await this.#axiosInstance.get(`${GiphyTypes.GIF}/categories`, { params });
+            if (giphyResponse.status !== 200) {
+                throw new Error("The response wasn't successful");
+            }
+            const { data : giphyData } = giphyResponse;
+            return giphyData;
+        } catch (error : any) {
+            if (error instanceof(AxiosError) && error.isAxiosError) {
+                console.log(`Axios error with code ${error.code}: ${error.message}`);
+            } else {
+                console.log(`Environment error: ${error.message}`);
+            }
+        }
+    }
+
 }

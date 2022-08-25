@@ -66,7 +66,7 @@ const main = () : void => {
     const sevastolink : BotSetup = new BotSetup({
         intents: [GatewayIntentBits.Guilds]
     }, [process.env.CLIENT_TOKEN!, process.env.CLIENT_ID!]);
-    sevastolink.registerCommands();
+    /* sevastolink.registerCommands(); */
     sevastolink.setup();
 }
 
