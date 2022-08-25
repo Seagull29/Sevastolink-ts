@@ -2,6 +2,8 @@ import { GiphyApi } from "@services/giphy/api/giphyApi";
 import { GiphyTypes } from "@services/giphy/api/giphyTypes";
 import { GiphyCategory } from "@services/giphy/models/giphyCategory";
 import { GiphyGif } from "@services/giphy/models/giphyGif";
+import { TenorApi } from "@services/tenor/api/tenorApi";
+import { TenorGif } from "@services/tenor/models/tenorGif";
 import { Command } from "@utils/models/command";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
 import dotenv from "dotenv";
@@ -12,6 +14,10 @@ export default class GifCommand extends Command {
 
     readonly #giphyApi : GiphyApi = new GiphyApi(
         process.env.GIPHY_KEY || ""
+    );
+    readonly #tenorApi : TenorApi = new TenorApi(
+        process.env.TENOR_KEY || "",
+        process.env.TENOR_CLIENT_KEY || ""
     );
     
     constructor() {
@@ -56,10 +62,9 @@ export default class GifCommand extends Command {
         return row;
     }
 
-    #buildEmbed = (gifObjects : GiphyGif[], user : User, index : number) : EmbedBuilder => {
+    #buildGiphyGifEmbed = (gif : GiphyGif, user : User, index : number, long : number) : EmbedBuilder => {
         const now : Date = new Date();
         const embed : EmbedBuilder = new EmbedBuilder();
-        const gif : GiphyGif = gifObjects[index];
         const { user : gifUser } = gif;
         const trendingDate : string = new Date(gif.trendingDatetime).toDateString();
         embed.setTitle(gif.title).setURL(gif.url).setColor(user.accentColor!).setThumbnail("https://ucb4d3b291391bc060502d507126.previews.dropboxusercontent.com/p/thumb/ABrUuqzrpxL9vjYypa4h1DcfopG2bFr4P-vjxM8iBuNDTraP4C6L7oVICujSj_sac38Igxchn3xGmYSHMCdGbY8tn2_LPnCLewUiil7mMrwLiY0ISGu7B-plxtw5d_ZHZqQ1SreqXC8z_fQudIXxK7mC5d_MmANYR4nA00YwU8yYl2ZxCRuDg4djNwq66XUAjo0Vk8IC_UeISkduC2qEI5M-0qWwGXFjI4D1QK98tb756nX6yt4G6sDq50gGymiWKCUBsq_kjj1DMkgzbKBodxnQgQR3qz8-6dHqiQOFN_jRSEmi2EAzlauqxYMQ4uYjoQCQUraUoAVf2GHU1tLqVmMbYAE9vBXUnWzq0pUHSCDWRnIMYuBiye9H_c7HbRawCHI/p.png").setImage(gif.originalImage);
@@ -72,7 +77,7 @@ export default class GifCommand extends Command {
             
         }
         embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${gifObjects.length}`,
+            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${long}`,
             iconURL: user.avatarURL() || ""
         });
         embed.addFields(
@@ -85,10 +90,9 @@ export default class GifCommand extends Command {
         return embed;
     }
 
-    #buildCategoryEmbed = (categories : GiphyCategory[], user : User, index : number) : EmbedBuilder => {
+    #buildGiphyCategoryEmbed = (category : GiphyCategory, user : User, index : number, long : number) : EmbedBuilder => {
         const now : Date = new Date();
         const embed : EmbedBuilder = new EmbedBuilder();
-        const category : GiphyCategory = categories[index];
         const { gif } = category;
         const { subcategories : categorySubcategories } = category;
         const subcategories : string[] = [];
@@ -106,7 +110,7 @@ export default class GifCommand extends Command {
             });
         }
         embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${categories.length}`,
+            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${long}`,
             iconURL: user.avatarURL() || ""
         });
         embed.addFields(
@@ -115,7 +119,23 @@ export default class GifCommand extends Command {
         return embed;
     }
 
-    #handleReply = async (interaction : ChatInputCommandInteraction, gifObjects : GiphyGif[] | GiphyCategory[]) : Promise<void> => {
+    #buildTenorGifEmbed = (tenorGif : TenorGif, user : User, index : number, long : number) : EmbedBuilder => {
+        const now : Date = new Date();
+        const embed : EmbedBuilder = new EmbedBuilder();
+        const { tags } = tenorGif;
+        embed.setTitle(tenorGif.title || tenorGif.contentDescription).setThumbnail("https://tenor.com/assets/img/tenor-app-icon.png").setColor(user.accentColor!).setImage(tenorGif.gifUrl).setURL(tenorGif.url);
+        embed.setFooter({
+            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${long}`,
+            iconURL: user.avatarURL() || ""
+        });
+        embed.addFields(
+            { name: "Tags", value: tags.slice(0, Math.floor(tags.length / 2)).join(", ") },
+            { name: "Create date", value: new Date(tenorGif.created).toDateString(), inline: true },   
+        );
+        return embed;
+    }
+
+    #handleReply = async (interaction : ChatInputCommandInteraction, gifObjects : (GiphyGif | TenorGif | GiphyCategory)[]) : Promise<void> => {
         if (!gifObjects.length) {
             return;
         }
@@ -124,10 +144,13 @@ export default class GifCommand extends Command {
         const user : User = await interaction.user.fetch();
         let index : number = 0;
         let gifEmbed : EmbedBuilder = new EmbedBuilder();
-        if (gifObjects[0] instanceof(GiphyGif)) {
-            gifEmbed = this.#buildEmbed(gifObjects as GiphyGif[], user, index);
-        } else if (gifObjects[0] instanceof(GiphyCategory)) {
-            gifEmbed = this.#buildCategoryEmbed(gifObjects as GiphyCategory[], user, index);
+        let gifObject : GiphyGif | TenorGif | GiphyCategory = gifObjects[index];
+        if (gifObject instanceof(GiphyGif)) {
+            gifEmbed = this.#buildGiphyGifEmbed(gifObject , user, index, gifObjects.length);
+        } else if (gifObject instanceof(GiphyCategory)) {
+            gifEmbed = this.#buildGiphyCategoryEmbed(gifObject, user, index, gifObjects.length);
+        } else if (gifObject instanceof(TenorGif)) {
+            gifEmbed = this.#buildTenorGifEmbed(gifObject, user, index, gifObjects.length);
         }
         await interaction.editReply({
             embeds: [gifEmbed],
@@ -151,10 +174,13 @@ export default class GifCommand extends Command {
             if (index === -1) {
                 index = gifObjects.length - 1;
             }
-            if (gifObjects[0] instanceof(GiphyGif)) {
-                gifEmbed = this.#buildEmbed(gifObjects as GiphyGif[], user, index);
-            } else if (gifObjects[0] instanceof(GiphyCategory)) {
-                gifEmbed = this.#buildCategoryEmbed(gifObjects as GiphyCategory[], user, index);
+            let newCurrentGif : GiphyGif | TenorGif | GiphyCategory = gifObjects[index];
+            if (newCurrentGif instanceof(GiphyGif)) {
+                gifEmbed = this.#buildGiphyGifEmbed(newCurrentGif, user, index, gifObjects.length);
+            } else if (newCurrentGif instanceof(GiphyCategory)) {
+                gifEmbed = this.#buildGiphyCategoryEmbed(newCurrentGif, user, index, gifObjects.length);
+            } else if (newCurrentGif instanceof(TenorGif)) {
+                gifEmbed = this.#buildTenorGifEmbed(newCurrentGif, user, index, gifObjects.length);
             }
             await messageInteraction.update({
                 embeds: [gifEmbed]
@@ -168,13 +194,27 @@ export default class GifCommand extends Command {
     #handleSearchSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         await interaction.deferReply();
         const query : string = interaction.options.getString("query")!;
-        const giphyData = await this.#giphyApi.search(query, GiphyTypes.GIF);
+        const gifs = Promise.all([
+            this.#giphyApi.search(query, GiphyTypes.GIF),
+            this.#tenorApi.search(query)
+        ]);
+        const [giphyData, tenorData] = await gifs;
+        const giphyGifs : GiphyGif[] = giphyData.data.map((gif : any) => new GiphyGif(gif));
+        const tenorGifs : TenorGif[] = tenorData.results.map((gif : any) => new TenorGif(gif));
+        /* const giphyData = await this.#giphyApi.search(query, GiphyTypes.GIF);
         const { data } = giphyData;
         const giphyGifs : GiphyGif[] = [];
         for (const gif of data) {
             giphyGifs.push(new GiphyGif(gif));
-        }
-        this.#handleReply(interaction, giphyGifs);
+        } */
+        //this.#handleReply(interaction, giphyGifs);
+        /* const tenorData = await this.#tenorApi.search(query);
+        const { results } = tenorData;
+        const tenorGifs : TenorGif[] = [];
+        for (const gif of results) {
+            tenorGifs.push(new TenorGif(gif));
+        } */
+        this.#handleReply(interaction, [...giphyGifs, ...tenorGifs]);
     }
 
     #handleTrendingSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
