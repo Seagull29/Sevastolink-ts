@@ -6,10 +6,10 @@ export class GiphyApi {
     readonly #axiosInstance : AxiosInstance = axios.create({
         baseURL: "https://api.giphy.com/v1",
     });
-    readonly #giphyKey! : string;
+    readonly #GIPHY_KEY! : string;
 
     constructor(giphyKey : string) {
-        this.#giphyKey = giphyKey;
+        this.#GIPHY_KEY = giphyKey;
     }
 
     search = async (q : string, type : GiphyTypes, otherOptions : { limit? : number, offset? : number, lang? : string, rating? : string} = {}) => {
@@ -20,7 +20,7 @@ export class GiphyApi {
             if ((limit < 0) || (offset < 0)) {
                 throw new TypeError("Limit and Offset cannot be a negative number");
             }
-            const params = { api_key: this.#giphyKey, q: q.replaceAll(" ", "+"), limit, offset, lang, rating };
+            const params = { api_key: this.#GIPHY_KEY, q: q.replaceAll(" ", "+"), limit, offset, lang, rating };
             const giphyResponse : AxiosResponse = await this.#axiosInstance.get(`/${type}/search`, { params });
 
             if (giphyResponse.status !== 200) {
@@ -46,7 +46,7 @@ export class GiphyApi {
             if ((limit < 0) || (offset < 0)) {
                 throw new TypeError("Limit and Offset cannot be a negative number");
             }
-            const params = { api_key: this.#giphyKey, limit, offset, rating };
+            const params = { api_key: this.#GIPHY_KEY, limit, offset, rating };
             const giphyResponse : AxiosResponse = await this.#axiosInstance.get(`/${type}/trending`, { params });
             if (giphyResponse.status !== 200) {
                 throw new Error("The response wasn't successful");
@@ -64,7 +64,7 @@ export class GiphyApi {
 
     random = async (tag : string, type : GiphyTypes, rating? : string) => {
         try {
-            const params = { api_key: this.#giphyKey, tag: tag.replaceAll(" ", "+"), rating };
+            const params = { api_key: this.#GIPHY_KEY, tag: tag.replaceAll(" ", "+"), rating };
             const giphyResponse : AxiosResponse = await this.#axiosInstance.get(`/${type}/random`, { params });
             if (giphyResponse.status !== 200) {
                 throw new Error("The response wasn't successful");
@@ -82,7 +82,7 @@ export class GiphyApi {
 
     categories = async () => {
         try {
-            const params = { api_key: this.#giphyKey };
+            const params = { api_key: this.#GIPHY_KEY };
             const giphyResponse : AxiosResponse = await this.#axiosInstance.get(`${GiphyTypes.GIF}/categories`, { params });
             if (giphyResponse.status !== 200) {
                 throw new Error("The response wasn't successful");

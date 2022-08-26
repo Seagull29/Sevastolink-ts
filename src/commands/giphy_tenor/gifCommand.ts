@@ -3,21 +3,21 @@ import { GiphyTypes } from "@services/giphy/api/giphyTypes";
 import { GiphyCategory } from "@services/giphy/models/giphyCategory";
 import { GiphyGif } from "@services/giphy/models/giphyGif";
 import { TenorApi } from "@services/tenor/api/tenorApi";
+import { TenorCategory } from "@services/tenor/models/tenorCategory";
 import { TenorGif } from "@services/tenor/models/tenorGif";
 import { Command } from "@utils/models/command";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
-import dotenv from "dotenv";
 import { nanoid } from "nanoid";
-dotenv.config();
+import env from "@utils/env";
 
 export default class GifCommand extends Command {
 
     readonly #giphyApi : GiphyApi = new GiphyApi(
-        process.env.GIPHY_KEY || ""
+        env.giphyKey || ""
     );
     readonly #tenorApi : TenorApi = new TenorApi(
-        process.env.TENOR_KEY || "",
-        process.env.TENOR_CLIENT_KEY || ""
+        env.tenorKey || "",
+        env.tenorClientKey || ""
     );
     
     constructor() {
@@ -67,7 +67,7 @@ export default class GifCommand extends Command {
         const embed : EmbedBuilder = new EmbedBuilder();
         const { user : gifUser } = gif;
         const trendingDate : string = new Date(gif.trendingDatetime).toDateString();
-        embed.setTitle(gif.title).setURL(gif.url).setColor(user.accentColor!).setThumbnail("https://ucb4d3b291391bc060502d507126.previews.dropboxusercontent.com/p/thumb/ABrUuqzrpxL9vjYypa4h1DcfopG2bFr4P-vjxM8iBuNDTraP4C6L7oVICujSj_sac38Igxchn3xGmYSHMCdGbY8tn2_LPnCLewUiil7mMrwLiY0ISGu7B-plxtw5d_ZHZqQ1SreqXC8z_fQudIXxK7mC5d_MmANYR4nA00YwU8yYl2ZxCRuDg4djNwq66XUAjo0Vk8IC_UeISkduC2qEI5M-0qWwGXFjI4D1QK98tb756nX6yt4G6sDq50gGymiWKCUBsq_kjj1DMkgzbKBodxnQgQR3qz8-6dHqiQOFN_jRSEmi2EAzlauqxYMQ4uYjoQCQUraUoAVf2GHU1tLqVmMbYAE9vBXUnWzq0pUHSCDWRnIMYuBiye9H_c7HbRawCHI/p.png").setImage(gif.originalImage);
+        embed.setTitle(gif.title || "Oh! This is a lost gif without a name").setURL(gif.url).setColor(user.accentColor!).setThumbnail("https://ucb4d3b291391bc060502d507126.previews.dropboxusercontent.com/p/thumb/ABpnVvUArQaqvn68DnGrpsGf1s3eihVoEeYSntmNZPmB6_U6zcli6xxEtKqjelfeK5x8Yynj3ml2JS8lFh7GSPZxjA2xRgWWifYSj2tupuKPC02CV7Cp4qzQ1-QIGn6G2aGVtI9et_Zi-XO4ROxosHTRqJukUxrpaDrHKJa_ThwahFxAP93cz8XWJY12ep7gN6EKsrcIqS_4qyvy3F6_8CwqYEmKo4n5BCE4IUwMzP7GtT3VfYCHceKlHrJnDMii7N9P_QaANib0QXXDuIAQhGRRQz87wixE-O6I_HFjQ1WMd4zu6bWGR8AJRr6n_d7Tg0VA_IGZvtTKRzKKRTipjnUDlaY6f4VIi8TvY4bKo7ixH_KHS5evQX1orZGOt34Losc/p.png").setImage(gif.originalImage);
         if (gifUser) {
             embed.setAuthor({
                 name: gifUser.displayName || gifUser.username,
@@ -96,12 +96,12 @@ export default class GifCommand extends Command {
         const { gif } = category;
         const { subcategories : categorySubcategories } = category;
         const subcategories : string[] = [];
-        for (let subcategory = 0; subcategory < 25; ++subcategory) {
+        for (let subcategory = 0; subcategory < 15; ++subcategory) {
             if (categorySubcategories[subcategory]) {
                 subcategories.push(categorySubcategories[subcategory].name);
             }
         }
-        embed.setTitle(`Category: ${category.name}`).setThumbnail("https://ucb4d3b291391bc060502d507126.previews.dropboxusercontent.com/p/thumb/ABrUuqzrpxL9vjYypa4h1DcfopG2bFr4P-vjxM8iBuNDTraP4C6L7oVICujSj_sac38Igxchn3xGmYSHMCdGbY8tn2_LPnCLewUiil7mMrwLiY0ISGu7B-plxtw5d_ZHZqQ1SreqXC8z_fQudIXxK7mC5d_MmANYR4nA00YwU8yYl2ZxCRuDg4djNwq66XUAjo0Vk8IC_UeISkduC2qEI5M-0qWwGXFjI4D1QK98tb756nX6yt4G6sDq50gGymiWKCUBsq_kjj1DMkgzbKBodxnQgQR3qz8-6dHqiQOFN_jRSEmi2EAzlauqxYMQ4uYjoQCQUraUoAVf2GHU1tLqVmMbYAE9vBXUnWzq0pUHSCDWRnIMYuBiye9H_c7HbRawCHI/p.png").setImage(gif.originalImage).setColor(user.accentColor!);
+        embed.setTitle(`Category: ${category.name}`).setThumbnail("https://images-na.ssl-images-amazon.com/images/I/11VW65eq80L.png").setImage(gif.originalImage).setColor(user.accentColor!);
         if (gif.user) {
             embed.setAuthor({
                 name: gif.user.displayName || gif.user.username,
@@ -129,13 +129,29 @@ export default class GifCommand extends Command {
             iconURL: user.avatarURL() || ""
         });
         embed.addFields(
-            { name: "Tags", value: tags.slice(0, Math.floor(tags.length / 2)).join(", ") },
+            { name: "Tags", value: tags.slice(0, Math.ceil(tags.length / 2)).join(", ") },
             { name: "Create date", value: new Date(tenorGif.created).toDateString(), inline: true },   
         );
         return embed;
     }
 
-    #handleReply = async (interaction : ChatInputCommandInteraction, gifObjects : (GiphyGif | TenorGif | GiphyCategory)[]) : Promise<void> => {
+    #buildTenorCategoryEmbed = (tenorCategory : TenorCategory, user : User, index : number, long : number) : EmbedBuilder => {
+        const now : Date = new Date();
+        const embed : EmbedBuilder = new EmbedBuilder();
+        embed.setTitle(`Category: ${tenorCategory.searchTerm}`).setColor(user.accentColor!).setImage(tenorCategory.image);
+        embed.setAuthor({
+            name: "Tenor",
+            url: "https://tenor.com/",
+            iconURL: "https://tenor.com/assets/img/tenor-app-icon.png" 
+        });
+        embed.setFooter({
+            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${long}`,
+            iconURL: user.avatarURL() || ""
+        });
+        return embed;
+    }
+
+    #handleReply = async (interaction : ChatInputCommandInteraction, gifObjects : (GiphyGif | TenorGif | GiphyCategory | TenorCategory)[]) : Promise<void> => {
         if (!gifObjects.length) {
             return;
         }
@@ -144,13 +160,15 @@ export default class GifCommand extends Command {
         const user : User = await interaction.user.fetch();
         let index : number = 0;
         let gifEmbed : EmbedBuilder = new EmbedBuilder();
-        let gifObject : GiphyGif | TenorGif | GiphyCategory = gifObjects[index];
+        let gifObject : GiphyGif | TenorGif | GiphyCategory | TenorCategory = gifObjects[index];
         if (gifObject instanceof(GiphyGif)) {
             gifEmbed = this.#buildGiphyGifEmbed(gifObject , user, index, gifObjects.length);
         } else if (gifObject instanceof(GiphyCategory)) {
             gifEmbed = this.#buildGiphyCategoryEmbed(gifObject, user, index, gifObjects.length);
         } else if (gifObject instanceof(TenorGif)) {
             gifEmbed = this.#buildTenorGifEmbed(gifObject, user, index, gifObjects.length);
+        } else if (gifObject instanceof(TenorCategory)) {
+            gifEmbed = this.#buildTenorCategoryEmbed(gifObject, user, index, gifObjects.length);
         }
         await interaction.editReply({
             embeds: [gifEmbed],
@@ -174,13 +192,15 @@ export default class GifCommand extends Command {
             if (index === -1) {
                 index = gifObjects.length - 1;
             }
-            let newCurrentGif : GiphyGif | TenorGif | GiphyCategory = gifObjects[index];
+            let newCurrentGif : GiphyGif | TenorGif | GiphyCategory | TenorCategory = gifObjects[index];
             if (newCurrentGif instanceof(GiphyGif)) {
                 gifEmbed = this.#buildGiphyGifEmbed(newCurrentGif, user, index, gifObjects.length);
             } else if (newCurrentGif instanceof(GiphyCategory)) {
                 gifEmbed = this.#buildGiphyCategoryEmbed(newCurrentGif, user, index, gifObjects.length);
             } else if (newCurrentGif instanceof(TenorGif)) {
                 gifEmbed = this.#buildTenorGifEmbed(newCurrentGif, user, index, gifObjects.length);
+            } else if (newCurrentGif instanceof(TenorCategory)) {
+                gifEmbed = this.#buildTenorCategoryEmbed(newCurrentGif, user, index, gifObjects.length);
             }
             await messageInteraction.update({
                 embeds: [gifEmbed]
@@ -194,38 +214,24 @@ export default class GifCommand extends Command {
     #handleSearchSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         await interaction.deferReply();
         const query : string = interaction.options.getString("query")!;
-        const gifs = Promise.all([
+        const [giphyData, tenorData] = await Promise.all([
             this.#giphyApi.search(query, GiphyTypes.GIF),
             this.#tenorApi.search(query)
         ]);
-        const [giphyData, tenorData] = await gifs;
         const giphyGifs : GiphyGif[] = giphyData.data.map((gif : any) => new GiphyGif(gif));
         const tenorGifs : TenorGif[] = tenorData.results.map((gif : any) => new TenorGif(gif));
-        /* const giphyData = await this.#giphyApi.search(query, GiphyTypes.GIF);
-        const { data } = giphyData;
-        const giphyGifs : GiphyGif[] = [];
-        for (const gif of data) {
-            giphyGifs.push(new GiphyGif(gif));
-        } */
-        //this.#handleReply(interaction, giphyGifs);
-        /* const tenorData = await this.#tenorApi.search(query);
-        const { results } = tenorData;
-        const tenorGifs : TenorGif[] = [];
-        for (const gif of results) {
-            tenorGifs.push(new TenorGif(gif));
-        } */
         this.#handleReply(interaction, [...giphyGifs, ...tenorGifs]);
     }
 
     #handleTrendingSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         await interaction.deferReply();
-        const giphyData = await this.#giphyApi.trending(GiphyTypes.GIF);
-        const { data } = giphyData;
-        const giphyGifs : GiphyGif[] = [];
-        for (const gif of data) {
-            giphyGifs.push(new GiphyGif(gif));
-        }
-        this.#handleReply(interaction, giphyGifs);
+        const [giphyData, tenorData] = await Promise.all([
+            this.#giphyApi.trending(GiphyTypes.GIF),
+            this.#tenorApi.featured()
+        ]);
+        const giphyGifs : GiphyGif[] = giphyData.data.map((gif : any) => new GiphyGif(gif));
+        const tenorGifs : TenorGif[] = tenorData.results.map((gif : any) => new TenorGif(gif));
+        this.#handleReply(interaction, [...giphyGifs, ...tenorGifs]); 
     }
 
     #handleRandomSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
@@ -239,13 +245,13 @@ export default class GifCommand extends Command {
 
     #handleCategoriesSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         await interaction.deferReply();
-        const giphyData = await this.#giphyApi.categories();
-        const { data } = giphyData;
-        const categories : GiphyCategory[] = [];
-        for (const category of data) {
-            categories.push(new GiphyCategory(category));
-        }
-        this.#handleReply(interaction, categories);
+        const [giphyData, tenorData] = await Promise.all([
+            this.#giphyApi.categories(),
+            this.#tenorApi.categories()
+        ]);
+        const giphyCategories : GiphyCategory[] = giphyData.data.map((category : any) => new GiphyCategory(category));
+        const tenorCategories : TenorCategory[] = tenorData.tags.map((category : any) => new TenorCategory(category));
+        this.#handleReply(interaction, [...giphyCategories, ...tenorCategories]);
     }
 
     override execute = async (interaction : ChatInputCommandInteraction) : Promise<void> => {

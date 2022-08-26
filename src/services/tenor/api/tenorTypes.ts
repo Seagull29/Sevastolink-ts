@@ -23,3 +23,10 @@ export enum TenorContentFilter {
     HIGH = "high"
 
 }
+
+export enum TenorCategoryTypes {
+
+    FEATURED = "featured",
+    TRENDING = "trending"
+
+}
