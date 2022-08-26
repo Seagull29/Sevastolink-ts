@@ -28,7 +28,8 @@
             "@commands/*": ["commands/*"],
             "@events/*": ["events/*"], 
             "@utils/*": ["utils/*"],
-            "@services/*": ["services/*"]
+            "@services/*": ["services/*"],
+            "@config/*": ["config/*"]
         }
 
     },

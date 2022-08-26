@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node ./dist/index.js",
-    "dev": "concurrently \"tsc -W\" \"nodemon ./dist/index.js\"",
+    "dev": "concurrently \"tsc -W\" \"nodemon ./dist/index.js --trace-warnings\"",
     "commands": "node ./dist/test.js"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
   },
   "_moduleAliases": {
     "@utils": "dist/utils",
-    "@services": "dist/services"
+    "@services": "dist/services",
+    "@config": "dist/config"
   }
 }

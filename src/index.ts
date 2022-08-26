@@ -1,9 +1,9 @@
 import "module-alias/register";
 import { readFiles } from "@utils/helpers/readFiles";
-import { GatewayIntentBits, ClientOptions, RESTPostAPIApplicationCommandsJSONBody, REST, Routes, ActivityType } from "discord.js";
+import { GatewayIntentBits, ClientOptions, RESTPostAPIApplicationCommandsJSONBody, REST, Routes } from "discord.js";
 import { Bot } from "@utils/models/botClient";
+import { envMap, Environment } from "@config/env";
 import path from "path";
-import env from "@utils/env";
 
 class BotSetup {
 
@@ -63,7 +63,7 @@ class BotSetup {
 const main = () : void => {
     const sevastolink : BotSetup = new BotSetup({
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers]
-    }, [env.clientToken!, env.clientId!]);
+    }, [envMap.get(Environment.CLIENT_TOKEN)!, envMap.get(Environment.CLIENT_ID)!]);
     /* sevastolink.registerCommands(); */
     sevastolink.setup();
 }

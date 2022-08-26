@@ -10,13 +10,13 @@ import { SpotifyTrack } from "@services/spotify/models/spotifyTrack";
 import { convertMstoTime } from "@utils/helpers/convertMs";
 import { SpotifyPlaylist } from "@services/spotify/models/spotifyPlaylist";
 import { SpotifyObject } from "@services/spotify/models/spotifyObject";
-import env from "@utils/env";
+import { Environment, envMap } from "@config/env";
 
 export default class SpotifyCommand extends Command {
 
     readonly #spotifyApi : SpotifyApi = new SpotifyApi(
-        env.spotifyClientId || "",
-        env.spotifyClientSecret || ""        
+        envMap.get(Environment.SPOTIFY_CLIENT_ID)!,
+        envMap.get(Environment.SPOTIFY_CLIENT_SECRET)!     
     );
 
     constructor() {

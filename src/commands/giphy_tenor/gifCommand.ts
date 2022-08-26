@@ -8,16 +8,16 @@ import { TenorGif } from "@services/tenor/models/tenorGif";
 import { Command } from "@utils/models/command";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
 import { nanoid } from "nanoid";
-import env from "@utils/env";
+import { Environment, envMap } from "@config/env";
 
 export default class GifCommand extends Command {
 
     readonly #giphyApi : GiphyApi = new GiphyApi(
-        env.giphyKey || ""
+        envMap.get(Environment.GIPHY_KEY)!
     );
     readonly #tenorApi : TenorApi = new TenorApi(
-        env.tenorKey || "",
-        env.tenorClientKey || ""
+        envMap.get(Environment.TENOR_KEY)!,
+        envMap.get(Environment.TENOR_CLIENT_KEY)!
     );
     
     constructor() {

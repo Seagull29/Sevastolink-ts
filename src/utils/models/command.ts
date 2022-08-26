@@ -1,15 +1,15 @@
 import { ICommand } from "@utils/interfaces/commandInterface";
-import { Message, SlashCommandBuilder, SlashCommandSubcommandBuilder } from "discord.js";
+import { ContextMenuCommandBuilder, SlashCommandBuilder } from "discord.js";
 
 export abstract class Command implements ICommand {
 
-    #slashCommand! : SlashCommandBuilder | SlashCommandSubcommandBuilder;
+    #slashCommand! : SlashCommandBuilder | ContextMenuCommandBuilder;
 
-    constructor(slashCommandBuilder : SlashCommandBuilder | SlashCommandSubcommandBuilder) {
+    constructor(slashCommandBuilder : SlashCommandBuilder | ContextMenuCommandBuilder) {
         this.#slashCommand = slashCommandBuilder;
     }
 
-    get slashCommand() : SlashCommandBuilder | SlashCommandSubcommandBuilder {
+    get slashCommand() : SlashCommandBuilder | ContextMenuCommandBuilder {
         return this.#slashCommand;
     }
 
