@@ -1,5 +1,5 @@
 import { Command } from "@utils/models/command";
-import { ChatInputCommandInteraction, SlashCommandBuilder, SlashCommandSubcommandBuilder, User } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder, User } from "discord.js";
 
 
 export default class InfoCommand extends Command {

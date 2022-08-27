@@ -18,5 +18,9 @@ export abstract class OnEvent implements IEvent {
         return this.#once;
     }
 
-    execute = (...args : any[]) : void => {}
+    execute = (...args : any[]) : void => {
+        if (args) {
+            
+        }
+    }
 }

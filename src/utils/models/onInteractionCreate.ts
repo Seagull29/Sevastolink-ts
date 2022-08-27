@@ -6,6 +6,10 @@ export abstract class OnInteractionCreate extends OnEvent {
         super(...args);
     }
 
-    override execute = async (...args : any[]) : Promise<void> => {}
+    override execute = async (...args : any[]) : Promise<void> => {
+        if (args) {
+            
+        }
+    }
 
 }

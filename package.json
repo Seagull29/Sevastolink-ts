@@ -4,7 +4,9 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "tsc && node ./dist/index.js",
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "node ./dist/index.js",
     "dev": "concurrently \"tsc -W\" \"nodemon ./dist/index.js --trace-warnings\"",
     "commands": "node ./dist/test.js"
   },

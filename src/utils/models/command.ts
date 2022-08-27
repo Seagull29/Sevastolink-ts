@@ -13,6 +13,10 @@ export abstract class Command implements ICommand {
         return this.#slashCommand;
     }
 
-    execute = async (interaction : any) : Promise<void> => {}
+    execute = async (interaction : any) : Promise<void> => {
+        if (interaction) {
+            
+        }
+    }
 
 }

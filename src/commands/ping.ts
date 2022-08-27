@@ -1,6 +1,5 @@
 import { Command } from "@utils/models/command";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SelectMenuBuilder, SlashCommandBuilder } from "discord.js";
-import { setTimeout as wait } from "timers/promises";
 
 export default class PingCommand extends Command {
 
