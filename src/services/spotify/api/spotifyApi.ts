@@ -20,10 +20,9 @@ export class SpotifyApi extends SpotifyAuthentication {
             if ((limit < 0) || (offset < 0)) {
                 throw new TypeError("Limit and Offset cannot be a negative number");
             }
-            const params = { q: q.replaceAll(" ", "+"), type, limit, offset };
+            const params = { q, type, limit, offset };
             const headers = { "Authorization": `Bearer ${await this.useAccessToken()}` };
             const spotifyResponse : AxiosResponse = await this.#axiosInstance.get("/search", { params, headers });
-
             if (spotifyResponse.status !== 200) {
                 throw new Error("The response wasn't successful");
             }
@@ -32,7 +31,7 @@ export class SpotifyApi extends SpotifyAuthentication {
             return spotifyData;
 
         } catch (error : any) {
-            console.log(error.message);
+            console.log(error);
         }
     }
 }

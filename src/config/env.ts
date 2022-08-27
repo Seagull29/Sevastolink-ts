@@ -11,7 +11,7 @@ enum Environment {
     TENOR_CLIENT_KEY = "tenorClientKey"
 }
 
-const envMap : Map<string, string> = new Map();
+const envMap : Map<Environment, string> = new Map();
 envMap.set(Environment.CLIENT_TOKEN, process.env.CLIENT_TOKEN || "");
 envMap.set(Environment.CLIENT_ID, process.env.CLIENT_ID || "");
 envMap.set(Environment.SPOTIFY_CLIENT_ID, process.env.SPOTIFY_CLIENT_ID || "");

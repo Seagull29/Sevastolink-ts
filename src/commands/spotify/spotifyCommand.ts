@@ -50,7 +50,7 @@ export default class SpotifyCommand extends Command {
         const subcommand : SlashCommandSubcommandBuilder = new SlashCommandSubcommandBuilder();
         subcommand.setName(name).setDescription(description);
         subcommand.addStringOption(option => {
-            option.setName(optionName).setDescription(optionDescription).setMaxLength(30).setRequired(true);
+            option.setName(optionName).setDescription(optionDescription).setMaxLength(40).setRequired(true);
             return option;
         });
         return subcommand;
