@@ -137,7 +137,7 @@ export default class SpotifyContextMenuCommand extends Command {
         if (!items.length) {
             await message.update({
                 components: [],
-                content: "Oh! We couln't find the requested song. It might be for different reasons"
+                content: ">>> Oh! We couln't find the requested song. It might be for different reasons"
             });
             return;
         }
@@ -146,13 +146,13 @@ export default class SpotifyContextMenuCommand extends Command {
         
         await message.update({
             components: [],
-            content: "We found the song! It may not be the same that you requested"
+            content: ">>> ***We found the song! It may not be the same that you requested***"
         });
         await message.followUp({
             embeds: [trackEmbed]
         });
         await message.followUp({
-            content: foundTrack.externalUrl
+            content: `>>> ${foundTrack.externalUrl}`
         });
     }
 
@@ -168,7 +168,7 @@ export default class SpotifyContextMenuCommand extends Command {
         if (!items.length) {
             await message.update({
                 components: [],
-                content: "Oh! We couldn't find the requested album. It might be for different reasons"
+                content: ">>> Oh! We couldn't find the requested album. It might be for different reasons"
             });
             return;
         }
@@ -177,13 +177,13 @@ export default class SpotifyContextMenuCommand extends Command {
         
         await message.update({
             components: [],
-            content: "We found the album! It may not be the same that you requested"
+            content: ">>> ***We found the album! It may not be the same that you requested***"
         });
         await message.followUp({
             embeds: [albumEmbed]
         });
         await message.followUp({
-            content: foundAlbum.externalUrl
+            content: `>>> ${foundAlbum.externalUrl}`
         });
     }
 
@@ -196,7 +196,7 @@ export default class SpotifyContextMenuCommand extends Command {
         if (!items.length) {
             await message.update({
                 components: [],
-                content: "Oh! We couldn't find the requested artist. It might be for different reasons"
+                content: ">>> Oh! We couldn't find the requested artist. It might be for different reasons"
             })
             return;
         }
@@ -204,13 +204,13 @@ export default class SpotifyContextMenuCommand extends Command {
         const artistEmbed : EmbedBuilder = this.#buildArtistEmbed(foundArtist, user);
         await message.update({
             components: [],
-            content: "We found the artist! It may not be the same that you requested"
+            content: ">>> ***We found the artist! It may not be the same that you requested***"
         });
         await message.followUp({
             embeds: [artistEmbed]
         });
         await message.followUp({
-            content: foundArtist.externalUrl
+            content: `>>> ${foundArtist.externalUrl}`
         });
     }
 

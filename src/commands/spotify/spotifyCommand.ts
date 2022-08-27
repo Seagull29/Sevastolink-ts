@@ -2,7 +2,7 @@ import { SpotifyApi } from "@services/spotify/api/spotifyApi";
 import { SpotifyTypes } from "@services/spotify/api/spotifyTypes";
 import { SpotifyArtist } from "@services/spotify/models/spotifyArtist";
 import { Command } from "@utils/models/command";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, Message, MessageComponentInteraction, SlashCommandBuilder, SlashCommandSubcommandBuilder, User } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, Message, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
 import { setTimeout as wait } from "timers/promises";
 import { nanoid } from "nanoid";
 import { SpotifyAlbum } from "@services/spotify/models/spotifyAlbum";
@@ -26,34 +26,24 @@ export default class SpotifyCommand extends Command {
     static #buildCommand = () : SlashCommandBuilder => {
         const spotifyCommand : SlashCommandBuilder = new SlashCommandBuilder();
         spotifyCommand.setName("spotify").setDescription("Find whatever you want on Spotify catalog");
-        spotifyCommand.addSubcommandGroup(subcommandGroup => {
-            subcommandGroup.setName("search").setDescription("Search artists, tracks, albums, and more on Spotify");
-            subcommandGroup.addSubcommand(this.#buildSubcommand({ 
-                name: "artists", description: "Search artists on Spotify", optionName: "query", optionDescription: "Artist to search"
-            }));
-            subcommandGroup.addSubcommand(this.#buildSubcommand({ 
-                name: "tracks", description: "Search tracks on Spotify", optionName: "query", optionDescription: "Track to search"
-            }));
-            subcommandGroup.addSubcommand(this.#buildSubcommand({ 
-                name: "albums", description: "Search albums on Spotify", optionName: "query", optionDescription: "Album to search"
-            }));
-            subcommandGroup.addSubcommand(this.#buildSubcommand({ 
-                name: "playlists", description: "Search playlists on Spotify", optionName: "query", optionDescription: "Playlist to search"
-            }));
-            
-            return subcommandGroup;
+        spotifyCommand.addSubcommand(subcommand => {
+            subcommand.setName("search").setDescription("Search artists, tracks, albums, and more on Spotify");
+            subcommand.addStringOption(option => {
+                option.setName("query").setDescription("Your query to search on Spotify").setRequired(true).setMaxLength(50);
+                return option;
+            });
+            subcommand.addStringOption(option => {
+                option.setName("type").setDescription("It can be track, album, artist or playlist").setRequired(true).addChoices(
+                    { name: "Tracks", value: SpotifyTypes.TRACK },
+                    { name: "Albums", value: SpotifyTypes.ALBUM },
+                    { name: "Artists", value: SpotifyTypes.ARTIST },
+                    { name: "Playlists", value: SpotifyTypes.PLAYLIST }
+                );
+                return option;
+            });
+            return subcommand;
         });
         return spotifyCommand;
-    }
-
-    static #buildSubcommand = ({ name, description, optionName, optionDescription } : { name : string, description : string, optionName : string, optionDescription : string}) : SlashCommandSubcommandBuilder => {
-        const subcommand : SlashCommandSubcommandBuilder = new SlashCommandSubcommandBuilder();
-        subcommand.setName(name).setDescription(description);
-        subcommand.addStringOption(option => {
-            option.setName(optionName).setDescription(optionDescription).setMaxLength(40).setRequired(true);
-            return option;
-        });
-        return subcommand;
     }
 
     #replyToEmptyData = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
@@ -88,7 +78,7 @@ export default class SpotifyCommand extends Command {
             iconURL: user.avatarURL() || ""
         });
         embed.addFields(
-            { name: "Genres", value: artist.genres.join(", ") },
+            { name: "Genres", value: !artist.genres.length ? "There are not genres to show" : artist.genres.join(", ") },
             { name: "Type", value: artist.type, inline: true  },
             { name: "Followers", value: artist.followers.toString(), inline: true },
             { name: "Popularity", value: artist.popularity.toString(), inline: true }
@@ -220,7 +210,7 @@ export default class SpotifyCommand extends Command {
             embeds: [spotifyEmbed],
             components: [this.#buildButtons(previousInteractionId, nextInteractionId)]
         });
-        let embedUrlMessage : Message = await (await interaction.followUp(currentSpotifyObject.externalUrl)).fetch();
+        let embedUrlMessage : Message = await (await interaction.followUp(`>>> ${currentSpotifyObject.externalUrl}`)).fetch();
         const navigationFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === previousInteractionId || messageInteraction.customId === nextInteractionId;
         const collector = interaction.channel?.createMessageComponentCollector({
             filter: navigationFilter,
@@ -253,7 +243,7 @@ export default class SpotifyCommand extends Command {
             await messageInteraction.update({
                 embeds: [spotifyEmbed]
             });
-            embedUrlMessage = await messageInteraction.followUp(currentSpotifyObject.externalUrl);
+            embedUrlMessage = await messageInteraction.followUp(`>>> ${currentSpotifyObject.externalUrl}`);
         });
         collector?.on("end", collected => {
             console.log(`Collected ${collected.size} items`);
@@ -305,24 +295,24 @@ export default class SpotifyCommand extends Command {
     }
     
     override execute = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
-        const query : string = interaction.options.getString("query")!;
-        const { _group : group } : any = interaction.options;
-        const { _subcommand : subcommand } : any = interaction.options;
-        if (group === "search") {
-            switch (subcommand) {
-                case "artists":
+        const subcommand : string = interaction.options.getSubcommand();       
+        if (subcommand === "search") {
+            const query : string = interaction.options.getString("query")!;
+            const type : string = interaction.options.getString("type")!;
+            switch (type) {
+                case SpotifyTypes.ARTIST:
                     this.#handleSearchArtistsSubcommand(interaction, query);
                     break;
-                case "albums":
+                case SpotifyTypes.ALBUM:
                     this.#handleSearchAlbumsSubcommand(interaction, query);
                     break;
-                case "tracks":
+                case SpotifyTypes.TRACK:
                     this.#handleSearchTracksSubcommand(interaction, query);
                     break;
-                case "playlists":
+                case SpotifyTypes.PLAYLIST:
                     this.#handleSearchPlaylistsSubcommand(interaction, query);
                     break;
-            }
+            }       
         }
     }
 }
