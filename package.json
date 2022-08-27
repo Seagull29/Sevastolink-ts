@@ -7,8 +7,7 @@
     "build": "tsc",
     "prestart": "npm run build",
     "start": "node ./dist/index.js",
-    "dev": "concurrently \"tsc -W\" \"nodemon ./dist/index.js --trace-warnings\"",
-    "commands": "node ./dist/test.js"
+    "dev": "concurrently \"tsc -W\" \"nodemon ./dist/index.js --trace-warnings\""
   },
   "dependencies": {
     "@discordjs/rest": "^1.0.1",
