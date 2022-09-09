@@ -1,20 +1,20 @@
+import { Environment, envMap } from "@config/env";
 import { GiphyApi } from "@services/giphy/api/giphyApi";
 import { GiphyTypes } from "@services/giphy/api/giphyTypes";
 import { GiphyCategory } from "@services/giphy/models/giphyCategory";
 import { GiphyGif } from "@services/giphy/models/giphyGif";
 import { TenorApi } from "@services/tenor/api/tenorApi";
+import { TenorTypes } from "@services/tenor/api/tenorTypes";
 import { TenorCategory } from "@services/tenor/models/tenorCategory";
 import { TenorGif } from "@services/tenor/models/tenorGif";
+import { buildGiphyCategoryEmbed, buildGiphyEmbed } from "@utils/helpers/commands/giphy";
+import { buildMenuButtons } from "@utils/helpers/commands/menuButtons";
+import { buildTenorCategoryEmbed, buildTenorEmbed } from "@utils/helpers/commands/tenor";
 import { Command } from "@utils/models/command";
 import { ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
 import { nanoid } from "nanoid";
-import { Environment, envMap } from "@config/env";
-import { buildGiphyCategoryEmbed, buildGiphyEmbed } from "@utils/helpers/commands/giphy";
-import { buildTenorCategoryEmbed, buildTenorEmbed } from "@utils/helpers/commands/tenor";
-import { buildMenuButtons } from "@utils/helpers/commands/menuButtons";
 
-export default class GifCommand extends Command {
-
+export default class StickerCommand extends Command {
     readonly #giphyApi : GiphyApi = new GiphyApi(
         envMap.get(Environment.GIPHY_KEY)!
     );
@@ -22,39 +22,35 @@ export default class GifCommand extends Command {
         envMap.get(Environment.TENOR_KEY)!,
         envMap.get(Environment.TENOR_CLIENT_KEY)!
     );
-    
+
     constructor() {
-        super(GifCommand.#buildCommand());
+        super(StickerCommand.#buildCommand());
     }
 
     static #buildCommand = () : SlashCommandBuilder => {
-        const gifCommand : SlashCommandBuilder = new SlashCommandBuilder();
-        gifCommand.setName("gif").setDescription("Find the gif you want on both Giphy and Tenor");
-        gifCommand.addSubcommand(subcommand => {
-            subcommand.setName("search").setDescription("Search gifs on both Giphy and Tenor");
+        const stickerCommand : SlashCommandBuilder = new SlashCommandBuilder();
+        stickerCommand.setName("sticker").setDescription("Find the sticker you want on bot Giphy and Tenor");
+        stickerCommand.addSubcommand(subcommand => {
+            subcommand.setName("search").setDescription("Search stickers on both Giphy and Tenor");
             subcommand.addStringOption(option => {
                 option.setName("query").setDescription("Topic to search on Giphy and Tenor").setMaxLength(30).setRequired(true);
                 return option;
             });
             return subcommand;
         });
-        gifCommand.addSubcommand(subcommand => {
-            subcommand.setName("trending").setDescription("Look at the current trending gifs on the web");
+        stickerCommand.addSubcommand(subcommand => {
+            subcommand.setName("trending").setDescription("Look at the current trending stickers on the web");
             return subcommand;
         });
-        gifCommand.addSubcommand(subcommand => {
-            subcommand.setName("random").setDescription("Get random gifs");
+        stickerCommand.addSubcommand(subcommand => {
+            subcommand.setName("random").setDescription("Get random stickers");
             subcommand.addStringOption(option => {
                 option.setName("query").setDescription("To filter the random result").setMaxLength(30).setRequired(true);
                 return option;
             });
             return subcommand;
         });
-        gifCommand.addSubcommand(subcommand => {
-            subcommand.setName("categories").setDescription("Get all gif categories");
-            return subcommand;
-        })
-        return gifCommand;
+        return stickerCommand;
     }
 
     #handleReply = async (interaction : ChatInputCommandInteraction, gifObjects : (GiphyGif | TenorGif | GiphyCategory | TenorCategory)[]) : Promise<void> => {
@@ -121,43 +117,33 @@ export default class GifCommand extends Command {
         await interaction.deferReply();
         const query : string = interaction.options.getString("query")!;
         const [giphyData, tenorData] = await Promise.all([
-            this.#giphyApi.search(query, GiphyTypes.GIF),
-            this.#tenorApi.search(query)
+            this.#giphyApi.search(query, GiphyTypes.STICKER),
+            this.#tenorApi.search(query, { searchFilter: TenorTypes.STICKER })
         ]);
-        const giphyGifs : GiphyGif[] = giphyData.data.map((gif : any) => new GiphyGif(gif));
-        const tenorGifs : TenorGif[] = tenorData.results.map((gif : any) => new TenorGif(gif));
-        this.#handleReply(interaction, [...giphyGifs, ...tenorGifs]);
+        const giphyStickers : GiphyGif[] = giphyData.data.map((sticker : any) => new GiphyGif(sticker));
+        const tenorStickers : TenorGif[] = tenorData.results.map((sticker : any) => new TenorGif(sticker));
+        this.#handleReply(interaction, [...giphyStickers, ...tenorStickers]);
     }
 
     #handleTrendingSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         await interaction.deferReply();
         const [giphyData, tenorData] = await Promise.all([
-            this.#giphyApi.trending(GiphyTypes.GIF),
-            this.#tenorApi.featured()
+            this.#giphyApi.trending(GiphyTypes.STICKER),
+            this.#tenorApi.featured({ searchFilter: TenorTypes.STICKER})
         ]);
-        const giphyGifs : GiphyGif[] = giphyData.data.map((gif : any) => new GiphyGif(gif));
-        const tenorGifs : TenorGif[] = tenorData.results.map((gif : any) => new TenorGif(gif));
-        this.#handleReply(interaction, [...giphyGifs, ...tenorGifs]); 
+        console.log(giphyData.data[1]);
+        const giphyStickers : GiphyGif[] = giphyData.data.map((sticker : any) => new GiphyGif(sticker));
+        const tenorStickers : TenorGif[] = tenorData.results.map((sticker : any) => new TenorGif(sticker));
+        this.#handleReply(interaction, [...giphyStickers, ...tenorStickers]);
     }
 
     #handleRandomSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         await interaction.deferReply();
         const query : string = interaction.options.getString("query")!;
-        const giphyData = await this.#giphyApi.random(query, GiphyTypes.GIF);
+        const giphyData = await this.#giphyApi.random(query, GiphyTypes.STICKER);
         const { data } = giphyData;
-        const gif : GiphyGif = new GiphyGif(data);
-        this.#handleReply(interaction, [gif]);
-    }
-
-    #handleCategoriesSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
-        await interaction.deferReply();
-        const [giphyData, tenorData] = await Promise.all([
-            this.#giphyApi.categories(),
-            this.#tenorApi.categories()
-        ]);
-        const giphyCategories : GiphyCategory[] = giphyData.data.map((category : any) => new GiphyCategory(category));
-        const tenorCategories : TenorCategory[] = tenorData.tags.map((category : any) => new TenorCategory(category));
-        this.#handleReply(interaction, [...giphyCategories, ...tenorCategories]);
+        const sticker : GiphyGif = new GiphyGif(data);
+        this.#handleReply(interaction, [sticker]);
     }
 
     override execute = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
@@ -171,9 +157,6 @@ export default class GifCommand extends Command {
                 break;
             case "random":
                 this.#handleRandomSubcommand(interaction);
-                break;
-            case "categories":
-                this.#handleCategoriesSubcommand(interaction);
                 break;
         }
     }

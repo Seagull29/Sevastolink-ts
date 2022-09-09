@@ -1,5 +1,5 @@
 import { OnEvent } from "@utils/models/onEvent";
-import { ActivityType, Client } from "discord.js";
+import { Activity, ActivityFlagsBitField, ActivityType, Client, RichPresenceAssets } from "discord.js";
 
 
 export default class OnReadyEvent extends OnEvent {
@@ -9,6 +9,20 @@ export default class OnReadyEvent extends OnEvent {
     }
 
     override execute = (client : Client) : void => {
+        const activity : Activity = {
+            name: "Spotify",
+            details: "",
+            state: "",
+            timestamps: {
+                start: null,
+                end: null
+            },
+            assets: {
+                largeText: "",
+                largeImage: "",
+            }
+        };
+        
         client.user?.setPresence({
             activities: [
                 {
