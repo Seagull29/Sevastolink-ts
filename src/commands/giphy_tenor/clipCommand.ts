@@ -1,16 +1,16 @@
-import { Environment, envMap } from "@config/env";
+/* import { Environment, envMap } from "@config/env";
 import { GiphyApi } from "@services/giphy/api/giphyApi";
 import { GiphyTypes } from "@services/giphy/api/giphyTypes";
 import { GiphyClip } from "@services/giphy/models/giphyClip";
-import { buildMenuButtons } from "@utils/helpers/commands/menuButtons";
+import { buildMenuButtons } from "@utils/helpers/commands/menuButtons"; */
 import { Command } from "@utils/models/command";
 import { ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
-import { nanoid } from "nanoid";
+/* import { nanoid } from "nanoid"; */
 
 export default class ClipCommand extends Command {
-    readonly #giphyApi : GiphyApi = new GiphyApi(
+    /* readonly #giphyApi : GiphyApi = new GiphyApi(
         envMap.get(Environment.GIPHY_KEY)!
-    );
+    ); */
     
     constructor() {
         super(ClipCommand.#buildCommand());
@@ -34,7 +34,7 @@ export default class ClipCommand extends Command {
         return clipCommand;
     }
 
-    #handleReply = async (interaction : ChatInputCommandInteraction, giphyClips : any[]) : Promise<void> => {
+    /* #handleReply = async (interaction : ChatInputCommandInteraction, giphyClips : any[]) : Promise<void> => {
         if (!giphyClips.length) {
             return;
         }
@@ -75,7 +75,7 @@ export default class ClipCommand extends Command {
         collector?.on("end", collected => {
             console.log(`Collected ${collected.size} items`);
         });   
-    }
+    } */
 
     #handleSearchSubcommand = async (interaction : ChatInputCommandInteraction) : Promise<void> => {
         await interaction.reply({

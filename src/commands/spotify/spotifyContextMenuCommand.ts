@@ -4,7 +4,7 @@ import { SpotifyTypes } from "@services/spotify/api/spotifyTypes";
 import { SpotifyAlbum } from "@services/spotify/models/spotifyAlbum";
 import { SpotifyArtist } from "@services/spotify/models/spotifyArtist";
 import { SpotifyTrack } from "@services/spotify/models/spotifyTrack";
-import { convertMstoTime } from "@utils/helpers/convertMs";
+import { buildAlbumEmbed, buildArtistEmbed, buildTrackEmbed } from "@utils/helpers/commands/spotifyEmbeds";
 import { getLimitedWords, normalizer } from "@utils/helpers/queryNormalizer";
 import { Command } from "@utils/models/command";
 import { ActionRowBuilder, Activity, ApplicationCommandType, ButtonBuilder, ButtonStyle, ContextMenuCommandBuilder, EmbedBuilder, Guild, GuildMember, MessageComponentInteraction, User, UserContextMenuCommandInteraction } from "discord.js";
@@ -30,100 +30,6 @@ export default class SpotifyContextMenuCommand extends Command {
         return row;
     }   
 
-    #buildTrackEmbed = (track : SpotifyTrack, user : User) : EmbedBuilder => {
-        const now : Date = new Date();
-        const embed : EmbedBuilder = new EmbedBuilder();
-        const { artists, album } = track;
-        const artistTrackNames : string[] = [];
-        const artistAlbumNames : string[] = [];
-        for (const artist of artists) {
-            artistTrackNames.push(artist.name);
-        }
-        for (const artist of album.artists) {
-            artistAlbumNames.push(artist.name);
-        }
-        const allTrackArtists : string = artistTrackNames.join(", ");
-        const allAlbumArtists : string = artistAlbumNames.join(", ");
-        embed.setTitle(track.name).setURL(track.externalUrl).setColor(user.accentColor!);
-        embed.setAuthor({
-            name: "Spotify",
-            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
-            url: "https://open.spotify.com/"
-        });
-        embed.setThumbnail(album.standardImage);
-        embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}`,
-            iconURL: user.avatarURL() || ""
-        });
-        embed.addFields(
-            { name: "Artists", value: allTrackArtists },
-            { name: "Album", value: album.name, inline: true },
-            { name: "Album release date", value: album.releaseDate, inline: true},
-            { name: "Album type", value: album.albumType, inline: true },
-            { name: "Album artists", value: allAlbumArtists },
-            { name: "Disc number", value: track.discNumber.toString(), inline: true },
-            { name: "Duration", value: convertMstoTime(track.durationMs), inline: true },
-            { name: "Track number", value: track.trackNumber.toString(), inline: true },
-            { name: "Available markets", value: `${track.availableMarkets.length} countries`, inline: true },
-            { name: "Explicit", value: `${track.explicit ? "Yes" : "No"}`, inline: true },
-            { name: "Popularity", value: track.popularity.toString(), inline: true }
-        );
-        return embed;
-    }
-
-    #buildAlbumEmbed = (album : SpotifyAlbum, user : User) : EmbedBuilder => {
-        const now : Date = new Date();
-        const embed : EmbedBuilder = new EmbedBuilder();
-        const { artists } = album;
-        const artistNames : string[] = [];
-        for (const artist of artists) {
-            artistNames.push(artist.name);
-        }
-        const allArtists : string = artistNames.join(", ");
-        embed.setTitle(album.name).setURL(album.externalUrl).setColor(user.accentColor!);
-        embed.setAuthor({
-            name: "Spotify",
-            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
-            url: "https://open.spotify.com/"
-        });
-        embed.setThumbnail(album.standardImage);
-        embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}`,
-            iconURL: user.avatarURL() || ""
-        });
-        embed.addFields(
-            { name: "Artists", value: allArtists },
-            { name: "Album type", value: album.albumType },
-            { name: "Available markets", value: `${album.availableMarkets.length} countries`, inline: true },
-            { name: "Release date", value: album.releaseDate, inline: true },
-            { name: "Total tracks", value: album.totalTracks.toString(), inline: true }
-        );
-        return embed;
-    }
-
-    #buildArtistEmbed = (artist : SpotifyArtist, user : User) : EmbedBuilder => {
-        const now : Date = new Date();
-        const embed : EmbedBuilder = new EmbedBuilder();
-        embed.setTitle(artist.name).setURL(artist.externalUrl).setColor(user.accentColor!);
-        embed.setAuthor({
-            name: "Spotify",
-            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
-            url: "https://open.spotify.com/"
-        });
-        embed.setThumbnail(artist.standardImage);
-        embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}`,
-            iconURL: user.avatarURL() || ""
-        });
-        embed.addFields(
-            { name: "Genres", value: artist.genres.join(", ") },
-            { name: "Type", value: artist.type, inline: true  },
-            { name: "Followers", value: artist.followers.toString(), inline: true },
-            { name: "Popularity", value: artist.popularity.toString(), inline: true }
-        );
-        return embed;
-    }
-
     #getTrack = async (message : MessageComponentInteraction, spotifyActivity : Activity) : Promise<void> => {
         const { details, state } = spotifyActivity;
         const largeText : string | null = spotifyActivity.assets!.largeText;
@@ -142,7 +48,7 @@ export default class SpotifyContextMenuCommand extends Command {
             return;
         }
         const foundTrack : SpotifyTrack = new SpotifyTrack(items[0]);
-        const trackEmbed : EmbedBuilder = this.#buildTrackEmbed(foundTrack, user);
+        const trackEmbed : EmbedBuilder = buildTrackEmbed(foundTrack, user);
         
         await message.update({
             components: [],
@@ -173,7 +79,7 @@ export default class SpotifyContextMenuCommand extends Command {
             return;
         }
         const foundAlbum : SpotifyAlbum = new SpotifyAlbum(items[0]);
-        const albumEmbed : EmbedBuilder = this.#buildAlbumEmbed(foundAlbum, user);
+        const albumEmbed : EmbedBuilder = buildAlbumEmbed(foundAlbum, user);
         
         await message.update({
             components: [],
@@ -201,7 +107,7 @@ export default class SpotifyContextMenuCommand extends Command {
             return;
         }
         const foundArtist : SpotifyArtist = new SpotifyArtist(items[0]);
-        const artistEmbed : EmbedBuilder = this.#buildArtistEmbed(foundArtist, user);
+        const artistEmbed : EmbedBuilder = buildArtistEmbed(foundArtist, user);
         await message.update({
             components: [],
             content: ">>> ***We found the artist! It may not be the same that you requested***"
@@ -211,6 +117,17 @@ export default class SpotifyContextMenuCommand extends Command {
         });
         await message.followUp({
             content: `>>> ${foundArtist.externalUrl}`
+        });
+    }
+
+    #getOwnPlaylist = async (interaction : UserContextMenuCommandInteraction) : Promise<void> => {
+        const playlistId : string = "https://open.spotify.com/playlist/5c9MvCiJztdWCdo9ubz5Y9";
+        await interaction.editReply({
+            components: [],
+            content: ">>> ***I'm listening to my own playlist. Enjoy with me!\nI'll be so glad if you give me a heart on my playlist! 🎧🎸***"
+        });
+        await interaction.followUp({
+            content: `>>> ${playlistId}`
         });
     }
 
@@ -240,6 +157,10 @@ export default class SpotifyContextMenuCommand extends Command {
             await interaction.editReply({
                 content: `>>> The user ***${targetMember.user.username}*** isn't listening to any track on Spotify`,
             });
+            return;
+        }
+        if (!spotifyActivity.details) {
+            this.#getOwnPlaylist(interaction);
             return;
         }
         const trackButton : string = nanoid();

@@ -2,15 +2,16 @@ import { SpotifyApi } from "@services/spotify/api/spotifyApi";
 import { SpotifyTypes } from "@services/spotify/api/spotifyTypes";
 import { SpotifyArtist } from "@services/spotify/models/spotifyArtist";
 import { Command } from "@utils/models/command";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, Message, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
+import { ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, Message, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
 import { setTimeout as wait } from "timers/promises";
 import { nanoid } from "nanoid";
 import { SpotifyAlbum } from "@services/spotify/models/spotifyAlbum";
 import { SpotifyTrack } from "@services/spotify/models/spotifyTrack";
-import { convertMstoTime } from "@utils/helpers/convertMs";
 import { SpotifyPlaylist } from "@services/spotify/models/spotifyPlaylist";
 import { SpotifyObject } from "@services/spotify/models/spotifyObject";
 import { Environment, envMap } from "@config/env";
+import { buildMenuButtons } from "@utils/helpers/commands/menuButtons";
+import { buildAlbumEmbed, buildArtistEmbed, buildPlaylistEmbed, buildTrackEmbed } from "@utils/helpers/commands/spotifyEmbeds";
 
 export default class SpotifyCommand extends Command {
 
@@ -54,138 +55,6 @@ export default class SpotifyCommand extends Command {
         await interaction.deleteReply();
     }
 
-    #buildButtons = (previousId : string, nextId : string) : ActionRowBuilder<ButtonBuilder> => {
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder().setCustomId(previousId).setStyle(ButtonStyle.Success).setEmoji("⏮️").setLabel("Previous"),
-            new ButtonBuilder().setCustomId(nextId).setStyle(ButtonStyle.Success).setLabel("Next").setEmoji("⏭️")
-        );
-        return row;
-    }
-
-    #buildArtistEmbed = (artists : SpotifyArtist[], user : User, index : number) : EmbedBuilder => {
-        const now : Date = new Date();
-        const embed : EmbedBuilder = new EmbedBuilder();
-        const artist : SpotifyArtist = artists[index];
-        embed.setTitle(artist.name).setURL(artist.externalUrl).setColor(user.accentColor!);
-        embed.setAuthor({
-            name: "Spotify",
-            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
-            url: "https://open.spotify.com/"
-        });
-        embed.setThumbnail(artist.standardImage);
-        embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${artists.length}`,
-            iconURL: user.avatarURL() || ""
-        });
-        embed.addFields(
-            { name: "Genres", value: !artist.genres.length ? "There are not genres to show" : artist.genres.join(", ") },
-            { name: "Type", value: artist.type, inline: true  },
-            { name: "Followers", value: artist.followers.toString(), inline: true },
-            { name: "Popularity", value: artist.popularity.toString(), inline: true }
-        );
-        return embed;
-    }
-
-    #buildAlbumEmbed = (albums : SpotifyAlbum[], user : User, index : number) : EmbedBuilder => {
-        const now : Date = new Date();
-        const embed : EmbedBuilder = new EmbedBuilder();
-        const album : SpotifyAlbum = albums[index];
-        const { artists } = album;
-        const artistNames : string[] = [];
-        for (const artist of artists) {
-            artistNames.push(artist.name);
-        }
-        const allArtists : string = artistNames.join(", ");
-        embed.setTitle(album.name).setURL(album.externalUrl).setColor(user.accentColor!);
-        embed.setAuthor({
-            name: "Spotify",
-            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
-            url: "https://open.spotify.com/"
-        });
-        embed.setThumbnail(album.standardImage);
-        embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${albums.length}`,
-            iconURL: user.avatarURL() || ""
-        });
-        embed.addFields(
-            { name: "Artists", value: allArtists },
-            { name: "Album type", value: album.albumType },
-            { name: "Available markets", value: `${album.availableMarkets.length} countries`, inline: true },
-            { name: "Release date", value: album.releaseDate, inline: true },
-            { name: "Total tracks", value: album.totalTracks.toString(), inline: true }
-        );
-        return embed;
-    }
-
-    #buildTrackEmbed = (tracks : SpotifyTrack[], user : User, index : number) : EmbedBuilder => {
-        const now : Date = new Date();
-        const embed : EmbedBuilder = new EmbedBuilder();
-        const track : SpotifyTrack = tracks[index];
-        const { artists, album } = track;
-        const artistTrackNames : string[] = [];
-        const artistAlbumNames : string[] = [];
-        for (const artist of artists) {
-            artistTrackNames.push(artist.name);
-        }
-        for (const artist of album.artists) {
-            artistAlbumNames.push(artist.name);
-        }
-        const allTrackArtists : string = artistTrackNames.join(", ");
-        const allAlbumArtists : string = artistAlbumNames.join(", ");
-        embed.setTitle(track.name).setURL(track.externalUrl).setColor(user.accentColor!);
-        embed.setAuthor({
-            name: "Spotify",
-            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
-            url: "https://open.spotify.com/"
-        });
-        embed.setThumbnail(album.standardImage);
-        embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${tracks.length}`,
-            iconURL: user.avatarURL() || ""
-        });
-        embed.addFields(
-            { name: "Artists", value: allTrackArtists },
-            { name: "Album", value: album.name, inline: true },
-            { name: "Album release date", value: album.releaseDate, inline: true},
-            { name: "Album type", value: album.albumType, inline: true },
-            { name: "Album artists", value: allAlbumArtists },
-            { name: "Disc number", value: track.discNumber.toString(), inline: true },
-            { name: "Duration", value: convertMstoTime(track.durationMs), inline: true },
-            { name: "Track number", value: track.trackNumber.toString(), inline: true },
-            { name: "Available markets", value: `${track.availableMarkets.length} countries`, inline: true },
-            { name: "Explicit", value: `${track.explicit ? "Yes" : "No"}`, inline: true },
-            { name: "Popularity", value: track.popularity.toString(), inline: true }
-        );
-        return embed;
-    }
-
-    #buildPlaylistEmbed = (playlists : SpotifyPlaylist[], user : User, index : number) : EmbedBuilder => {
-        const now : Date = new Date();
-        const embed : EmbedBuilder = new EmbedBuilder();
-        const playlist : SpotifyPlaylist = playlists[index];
-        const { owner } = playlist;
-        embed.setTitle(playlist.name).setURL(playlist.externalUrl).setColor(user.accentColor!);
-        embed.setAuthor({
-            name: "Spotify",
-            iconURL: "https://developer.spotify.com/assets/branding-guidelines/icon4@2x.png",
-            url: "https://open.spotify.com/"
-        });
-        embed.setThumbnail(playlist.standardImage);
-        embed.setFooter({
-            text: `Requested by ${user.username} at ${now.toDateString()} - ${now.toLocaleTimeString()}\nResult ${index + 1} of ${playlists.length}`,
-            iconURL: user.avatarURL() || ""
-        });
-        embed.addFields(
-            { name: "Description", value: playlist.description || "No description" },
-            { name: "Author", value: owner.displayName, inline: true },
-            { name: "Author id", value: owner.id, inline: true },
-            { name: "Collaborative", value: `${playlist.collaborative ? "Yes" : "No"}`, inline: true },
-            { name: "Tracks", value: playlist.tracks.toString(), inline: true },
-            { name: "Type", value: playlist.type, inline: true }
-        )
-        return embed;
-    }
-
     #handleReply = async (interaction : ChatInputCommandInteraction, spotifyObjects : SpotifyObject[]) : Promise<void> => {
         if (!spotifyObjects.length) {
             this.#replyToEmptyData(interaction);
@@ -198,17 +67,17 @@ export default class SpotifyCommand extends Command {
         let currentSpotifyObject : SpotifyObject = spotifyObjects[index];
         let spotifyEmbed : EmbedBuilder = new EmbedBuilder();
         if (currentSpotifyObject instanceof(SpotifyArtist)) {
-            spotifyEmbed = this.#buildArtistEmbed(spotifyObjects as SpotifyArtist[], user, index);
+            spotifyEmbed = buildArtistEmbed(currentSpotifyObject as SpotifyArtist, user, index, spotifyObjects.length);
         } else if (currentSpotifyObject instanceof(SpotifyAlbum)) {
-            spotifyEmbed = this.#buildAlbumEmbed(spotifyObjects as SpotifyAlbum[], user, index);
+            spotifyEmbed = buildAlbumEmbed(currentSpotifyObject as SpotifyAlbum, user, index, length);
         } else if (currentSpotifyObject instanceof(SpotifyTrack)) {
-            spotifyEmbed = this.#buildTrackEmbed(spotifyObjects as SpotifyTrack[], user, index);
+            spotifyEmbed = buildTrackEmbed(currentSpotifyObject as SpotifyTrack, user, index, spotifyObjects.length);
         } else if (currentSpotifyObject instanceof(SpotifyPlaylist)) {
-            spotifyEmbed = this.#buildPlaylistEmbed(spotifyObjects as SpotifyPlaylist[], user, index);
+            spotifyEmbed = buildPlaylistEmbed(currentSpotifyObject as SpotifyPlaylist, user, index, spotifyObjects.length);
         }
         await interaction.editReply({
             embeds: [spotifyEmbed],
-            components: [this.#buildButtons(previousInteractionId, nextInteractionId)]
+            components: [buildMenuButtons(previousInteractionId, nextInteractionId, ButtonStyle.Success)]
         });
         let embedUrlMessage : Message = await (await interaction.followUp(`>>> ${currentSpotifyObject.externalUrl}`)).fetch();
         const navigationFilter = (messageInteraction : MessageComponentInteraction) => messageInteraction.customId === previousInteractionId || messageInteraction.customId === nextInteractionId;
@@ -232,13 +101,13 @@ export default class SpotifyCommand extends Command {
             currentSpotifyObject = spotifyObjects[index];
             embedUrlMessage.delete();
             if (currentSpotifyObject instanceof(SpotifyArtist)) {
-                spotifyEmbed = this.#buildArtistEmbed(spotifyObjects as SpotifyArtist[], user, index);
+                spotifyEmbed = buildArtistEmbed(currentSpotifyObject as SpotifyArtist, user, index, spotifyObjects.length);
             } else if (currentSpotifyObject instanceof(SpotifyAlbum)) {
-                spotifyEmbed = this.#buildAlbumEmbed(spotifyObjects as SpotifyAlbum[], user, index);
+                spotifyEmbed = buildAlbumEmbed(currentSpotifyObject as SpotifyAlbum, user, index, spotifyObjects.length);
             } else if (currentSpotifyObject instanceof(SpotifyTrack)) {
-                spotifyEmbed = this.#buildTrackEmbed(spotifyObjects as SpotifyTrack[], user, index);
+                spotifyEmbed = buildTrackEmbed(currentSpotifyObject as SpotifyTrack, user, index, spotifyObjects.length);
             } else if (currentSpotifyObject instanceof(SpotifyPlaylist)) {
-                spotifyEmbed = this.#buildPlaylistEmbed(spotifyObjects as SpotifyPlaylist[], user, index);
+                spotifyEmbed = buildPlaylistEmbed(currentSpotifyObject as SpotifyPlaylist, user, index, spotifyObjects.length);
             }
             await messageInteraction.update({
                 embeds: [spotifyEmbed]

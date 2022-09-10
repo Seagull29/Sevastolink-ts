@@ -1,8 +1,8 @@
 export class GiphyClip {
 
-    readonly #data! : any;
+    /* readonly #data! : any;
 
     constructor(data : any) {
         this.#data = data;
-    }
+    } */
 }

@@ -9,8 +9,8 @@ import { Command } from "@utils/models/command";
 import { ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageComponentInteraction, SlashCommandBuilder, User } from "discord.js";
 import { nanoid } from "nanoid";
 import { Environment, envMap } from "@config/env";
-import { buildGiphyCategoryEmbed, buildGiphyEmbed } from "@utils/helpers/commands/giphy";
-import { buildTenorCategoryEmbed, buildTenorEmbed } from "@utils/helpers/commands/tenor";
+import { buildGiphyCategoryEmbed, buildGiphyEmbed } from "@utils/helpers/commands/giphyEmbeds";
+import { buildTenorCategoryEmbed, buildTenorEmbed } from "@utils/helpers/commands/tenorEmbeds";
 import { buildMenuButtons } from "@utils/helpers/commands/menuButtons";
 
 export default class GifCommand extends Command {
